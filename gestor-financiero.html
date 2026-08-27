@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Gestor de finanzas personales. Analiza tu extracto bancario y categoriza gastos automáticamente." />
+  <meta name="theme-color" content="#0A0D14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gestor Financiero" />
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiR2VzdG9yIEZpbmFuY2llcm8iLCJzaG9ydF9uYW1lIjoiRmluYW56YXMiLCJkZXNjcmlwdGlvbiI6IkFuYWxpemEgdHUgZXh0cmFjdG8gYmFuY2FyaW8geSBjYXRlZ29yaXphIHR1cyBnYXN0b3MgYXV0b23DoXRpY2FtZW50ZS4iLCJzdGFydF91cmwiIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwic2NvcGUiOiIuIiwic3RhcnRfdXJsIjoiLiIsInRoZW1lX2NvbG9yIjoiIzBBMEQxNCIsImJhY2tncm91bmRfY29sb3IiOiIjMEEwRDE0Iiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUIzYVdSMGRHVnVaMjl2WjJ4bElHTmhjMlZwWjJoMElqMG5NQ0FnSUdsdWRHVnNJSE4wZW1sdVozOWhiRzFwYkhrdUFqMG5NQ0FnSUhCeWIyUmxZM1JsWkdObGNtRmtiVzl1YldVdVkyOXRJanduSUNBZ0lDSmhZMlJsVG1GdFpYTkdiM0p1YVdSbFoyZGxhRzl2WmdsalpTQmhZMlJsVG1GdFpYTkdiM0p1YVdSbFoyZGxhRzl2WmdsalpTSU5KaUFnSUNBZ0lDSmhZMlJsVG1GdFpYTkdiM0p1YVdSbFoyZGxhRzl2WmdsalpTSUlKaUFnSUNBZ0lDSmhZMlJsVG1GdFpYTkdiM0p1YVdSbFoyZGxhRzl2WmdsalpTSXhJaUFnSUNBd0lDQWdJQ0psZUdGdGNHeGxMV0poYkdGdVozSjVJajBuTWlBdklpQWdJQ0FnSUNBaVptRnNjMlZ5ZG1WeUlqMG5JQ0FySWdvPSIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9zdmcreG1sIiwicHVycG9zZSI6ImFueSJdfV0sInNjcmVlbnNob3RzIjpbeyJzcmMiOiJkYXRhOmltYWdlL3BuZztcbiAgICBXaWR0aDogNTQwXG4gICAgSGVpZ2h0OiA3MjBcbiAgICBmb3JtYXQ6IHBuZyIsInNpemVzIjoiNTQweDcyMCIsImZvcm0iOiJ3aWRlIn1dLCJjYXRlZ29yaWVzIjpbImZpbmFuY2UiXX0=" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230A0D14' width='192' height='192'/><path fill='%23A78BFA' d='M96 32c-35.3 0-64 28.7-64 64s28.7 64 64 64 64-28.7 64-64-28.7-64-64-64zm32 80h-24v24h-16v-24H64v-16h24V72h16v24h24v16z'/></svg>" />
+  <title>Gestor Financiero</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #0A0D14;
+      color: #E8EDF7;
+      -webkit-font-smoothing: antialiased;
+      -webkit-touch-callout: none;
+    }
+    #root { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + dependencias desde CDN -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.production.min.js"></script>
+  
+  <!-- Papa Parse para CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+  <!-- SheetJS para Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+  
+  <!-- Lucide React Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Babel para JSX en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+    const {
+      Upload, Search, Wallet, ArrowDownRight, ArrowUpRight, Sparkles, X, ArrowUpDown,
+      AlertCircle, FileSpreadsheet, Pencil, Trash2, Undo2, Plus, CalendarRange
+    } = lucide;
+
+    /* ====== Tokens de diseño ====== */
+    const T = {
+      base: "#0A0D14", panel: "#121722", raised: "#171E2B", line: "#242C3D",
+      lineSoft: "#1C2434", text: "#E8EDF7", muted: "#8B98B0", faint: "#5D6a82",
+      brand: "#A78BFA", income: "#34D399", expense: "#FB7185",
+    };
+
+    const CATEGORIES = [
+      { id: "suministros", label: "Suministros", hint: "Luz · Agua · Gas · Telefonía", color: "#FBBF24", keywords: ["iberdrola","endesa","naturgy","repsol luz","holaluz","totalenergies","octopus energy","aqualia","emasa","hidralia","canal isabel","aguas de","gas natural","recibo luz","recibo agua","recibo gas","electricidad","suministro","movistar","vodafone","orange","jazztel","masmovil","yoigo","digi","pepephone","fibra"] },
+      { id: "ingresos", label: "Nómina / Ingresos", hint: "Entradas de dinero", color: "#34D399", keywords: ["nomina","salario","paga extra","abono nomina","transferencia recibida","ingreso","ingresos","devolucion","reembolso","dividendo","intereses","pension","prestacion","factura cobrada","cobro","bizum recibido"] },
+      { id: "ocio", label: "Restaurantes / Ocio", hint: "Comer fuera y tiempo libre", color: "#FB7185", keywords: ["restaurante","bar ","bodega","taberna","cerveceria","tapas","cafeteria","cafe ","chiringuito","heladeria","pizzeria","asador","glovo","just eat","uber eats","deliveroo","mcdonald","burger king","telepizza","dominos","starbucks","kfc","goiko","cine","cinesa","yelmo","teatro","concierto","entradas","discoteca","pub","gimnasio","basic fit","smart fit","cena","comida"] },
+      { id: "suscripciones", label: "Suscripciones", hint: "Cargos recurrentes", color: "#A78BFA", keywords: ["netflix","spotify","amazon prime","prime video","disney","hbo","max.com","filmin","dazn","movistar plus","apple.com/bill","itunes","icloud","google one","youtube premium","dropbox","adobe","microsoft 365","office 365","openai","chatgpt","anthropic","claude","github","canva","notion","playstation","xbox","nintendo","suscripcion","membresia"] },
+      { id: "supermercado", label: "Supermercado", hint: "Compra del día a día", color: "#38BDF8", keywords: ["mercadona","carrefour","lidl","aldi","dia","alcampo","eroski","consum","ahorramas","hipercor","supercor","gadis","froiz","bonarea","costco","supermercado","super ","fruteria","carniceria","pescaderia","panaderia","ultramarinos"] },
+      { id: "transporte", label: "Transporte", hint: "Moverse: coche y billetes", color: "#F97316", keywords: ["gasolinera","repsol","cepsa","galp","shell","bp ","carburante","renfe","alsa","avlo","ouigo","iryo","metro","emt","tussam","tmb","autobus","taxi","uber","cabify","bolt","blablacar","parking","aparcamiento","peaje","autopista","ap-7","ap-4","itv","dgt","iberia","vueling","ryanair","easyjet","aena","patinete","bicimad"] },
+      { id: "varios", label: "Varios", hint: "Todo lo que no encaja en el resto", color: "#94A3B8", keywords: ["farmacia","zara","decathlon","ikea","mediamarkt","primark","el corte ingles","seguro","mapfre","axa","allianz","comision","hacienda","alquiler","hipoteca","peluqueria","amazon"] },
+    ];
+    const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+    const STORE_KEY = "finanzas:movimientos";
+
+    /* ====== Utilidades ====== */
+    const strip = s => String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const eur = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
+    const eur0 = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+    const fmtDate = d => d ? d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) : "—";
+    const fmtDateLong = d => d ? d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "Sin fecha";
+    const NO_DATE = "sin-fecha";
+    const monthKey = d => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : NO_DATE;
+    const monthLabel = k => k === NO_DATE ? "Sin fecha" : new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, 1).toLocaleDateString("es-ES", { month: "short", year: "2-digit" }).replace(".", "");
+    const monthLong = k => k === "all" ? "Todos los meses" : k === NO_DATE ? "Movimientos sin fecha" : new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+    const parseAmount = v => {
+      if (typeof v === "number") return isFinite(v) ? v : NaN;
+      if (v == null) return NaN;
+      let s = String(v).trim();
+      if (!s) return NaN;
+      let neg = false;
+      if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+      s = s.replace(/eur/gi, "").replace(/[€$£\s\u00a0]/g, "");
+      if (s.startsWith("-")) { neg = true; s = s.slice(1); } else if (s.startsWith("+")) s = s.slice(1);
+      if (!/^[\d.,]+$/.test(s)) return NaN;
+      const lc = s.lastIndexOf(","); const ld = s.lastIndexOf(".");
+      if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+      else if (lc > -1) s = /^\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, "") : s.replace(",", ".");
+      else if (ld > -1) { if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ""); }
+      const n = parseFloat(s);
+      return !isFinite(n) ? NaN : neg ? -n : n;
+    };
+
+    const parseDate = v => {
+      if (v instanceof Date && !isNaN(v)) return v;
+      if (typeof v === "number" && v > 20000 && v < 60000) {
+        const d = new Date(Math.round((v - 25569) * 86400000));
+        return isNaN(d) ? null : d;
+      }
+      const s = String(v ?? "").trim();
+      if (!s) return null;
+      let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+      m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+      if (m) {
+        let y = +m[3];
+        if (y < 100) y += 2000;
+        return new Date(y, +m[2] - 1, +m[1]);
+      }
+      const d = new Date(s);
+      return isNaN(d) ? null : d;
+    };
+
+    const categorize = (concepto, importe) => {
+      const s = strip(concepto);
+      let best = null, bestLen = 0;
+      for (const c of CATEGORIES) {
+        for (const k of c.keywords) {
+          const len = k.trim().length;
+          if (len > bestLen && new RegExp(`(^|[^a-z0-9])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").trim()}`, "i").test(s)) {
+            best = c.id;
+            bestLen = len;
+          }
+        }
+      }
+      if (best) {
+        if (best === "ingresos" && importe < 0) return "varios";
+        return best;
+      }
+      return importe > 0 ? "ingresos" : "varios";
+    };
+
+    let uid = 0;
+    const buildRows = matrix => {
+      const HEAD = {
+        fecha: /^(fecha|f\.?\s*valor|f\.?\s*operacion|fecha operacion|fecha valor|date|dia)$/,
+        concepto: /concepto|descripcion|description|detalle|movimiento|referencia|observaciones|texto/,
+        importe: /^(importe|amount|cantidad|valor|importe eur|importe \(eur\))$/,
+        debe: /cargo|debe|adeudo|gasto|salida|pagos/,
+        haber: /abono|haber|ingreso|entrada|cobros/,
+        saldo: /saldo|balance/,
+      };
+      const hi = [...matrix].findIndex(r => {
+        const cells = (r || []).map(c => strip(c).trim());
+        const filled = cells.filter(Boolean).length;
+        if (filled < 2) return false;
+        const hasDate = cells.some(c => /fecha|date|f\. valor/.test(c));
+        const hasText = cells.some(c => HEAD.concepto.test(c));
+        const hasAmt = cells.some(c => (/importe|amount|cantidad/.test(c) || HEAD.debe.test(c) || HEAD.haber.test(c)) && !HEAD.saldo.test(c));
+        return (hasDate || hasText) && hasAmt;
+      });
+      if (hi === -1) throw new Error("No se han encontrado columnas de fecha, concepto e importe.");
+
+      const h = matrix[hi].map(c => strip(c).trim());
+      const find = test => h.findIndex(c => c && test.test(c) && !/saldo|balance/.test(c));
+      let iFecha = find(HEAD.fecha);
+      if (iFecha === -1) iFecha = find(/fecha|date|f\. valor/);
+      const iConcepto = find(HEAD.concepto);
+      let iImporte = find(HEAD.importe);
+      if (iImporte === -1) iImporte = find(/importe|amount|cantidad/);
+      const iDebe = find(HEAD.debe);
+      const iHaber = find(HEAD.haber);
+
+      if (iConcepto === -1 || (iImporte === -1 && iDebe === -1 && iHaber === -1))
+        throw new Error("Falta la columna de concepto o la de importe.");
+
+      const out = [];
+      for (let r = hi + 1; r < matrix.length; r++) {
+        const row = matrix[r] || [];
+        if (row.every(c => c === null || c === undefined || String(c).trim() === "")) continue;
+        const concepto = String(row[iConcepto] ?? "").trim();
+        let importe = NaN;
+        if (iImporte > -1) importe = parseAmount(row[iImporte]);
+        if (isNaN(importe)) {
+          const debe = iDebe > -1 ? parseAmount(row[iDebe]) : NaN;
+          const haber = iHaber > -1 ? parseAmount(row[iHaber]) : NaN;
+          if (!isNaN(haber) && haber !== 0) importe = Math.abs(haber);
+          else if (!isNaN(debe) && debe !== 0) importe = -Math.abs(debe);
+        }
+        if (!concepto || isNaN(importe)) continue;
+        const fecha = iFecha > -1 ? parseDate(row[iFecha]) : null;
+        out.push({ id: `r${uid++}`, fecha, concepto, importe, categoria: categorize(concepto, importe), manual: false });
+      }
+      if (!out.length) throw new Error("El archivo se ha leído, pero no contiene movimientos legibles.");
+      return out;
+    };
+
+    /* ====== Componente principal ====== */
+    function GestorFinanciero() {
+      const [rows, setRows] = useState([]);
+      const [fileName, setFileName] = useState("");
+      const [error, setError] = useState("");
+      const [notice, setNotice] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [dragging, setDragging] = useState(false);
+      const [query, setQuery] = useState("");
+      const [active, setActive] = useState([]);
+      const [sort, setSort] = useState({ key: "fecha", dir: "desc" });
+      const [mounted, setMounted] = useState(false);
+      const [ready, setReady] = useState(false);
+      const [saveState, setSaveState] = useState("idle");
+      const [month, setMonth] = useState("all");
+      const [formOpen, setFormOpen] = useState(false);
+      const [undo, setUndo] = useState(null);
+      const inputRef = useRef(null);
+
+      useEffect(() => {
+        let alive = true;
+        (async () => {
+          try {
+            const res = await window.storage.get(STORE_KEY);
+            const data = res?.value ? JSON.parse(res.value) : null;
+            if (alive && data?.rows?.length) {
+              setRows(data.rows.map(r => ({
+                ...r, id: `r${uid++}`, fecha: r.fecha ? new Date(r.fecha) : null
+              })));
+              setFileName(data.fileName || "Datos guardados");
+              setSaveState("saved");
+            }
+          } catch { }
+          if (alive) setReady(true);
+        })();
+        return () => { alive = false; };
+      }, []);
+
+      useEffect(() => {
+        const t = setTimeout(() => setMounted(true), 60);
+        return () => clearTimeout(t);
+      }, []);
+
+      useEffect(() => {
+        if (!undo) return;
+        const t = setTimeout(() => setUndo(null), 9000);
+        return () => clearTimeout(t);
+      }, [undo]);
+
+      useEffect(() => {
+        if (!ready) return;
+        let cancel = false;
+        setSaveState("saving");
+        const t = setTimeout(async () => {
+          try {
+            if (!rows.length) {
+              try { await window.storage.delete(STORE_KEY); } catch { }
+            } else {
+              await window.storage.set(STORE_KEY, JSON.stringify({
+                v: 1, fileName, rows: rows.map(r => ({
+                  concepto: r.concepto, importe: r.importe, categoria: r.categoria,
+                  manual: !!r.manual, añadido: !!r.añadido, fecha: r.fecha ? r.fecha.toISOString() : null
+                }))
+              }));
+            }
+            if (!cancel) setSaveState("saved");
+          } catch {
+            if (!cancel) setSaveState("error");
+          }
+        }, 600);
+        return () => { cancel = true; clearTimeout(t); };
+      }, [rows, fileName, ready]);
+
+      const sig = r => `${r.fecha ? r.fecha.toISOString().slice(0, 10) : "-"}|${strip(r.concepto)}|${r.importe.toFixed(2)}`;
+      const ingest = (matrix, name) => {
+        try {
+          const parsed = buildRows(matrix);
+          if (rows.length) {
+            const seen = new Set(rows.map(sig));
+            const fresh = parsed.filter(r => !seen.has(sig(r)));
+            const dupes = parsed.length - fresh.length;
+            setRows(prev => [...prev, ...fresh]);
+            setNotice(fresh.length ? `Se han añadido ${fresh.length} movimientos de ${name}.` + (dupes ? ` ${dupes} ya estaban guardados y se han omitido.` : "") : `Todos los movimientos de ${name} ya estaban guardados.`);
+            setFileName(f => f.includes(" + ") ? f : `${f} + ${name}`);
+          } else {
+            setRows(parsed);
+            setFileName(name);
+            setNotice("");
+          }
+          setError("");
+          setActive([]);
+          setQuery("");
+          setMonth("all");
+        } catch (e) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleFile = file => {
+        if (!file) return;
+        setLoading(true);
+        setError("");
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        if (ext === "csv" || ext === "txt") {
+          Papa.parse(file, {
+            header: false, skipEmptyLines: true, encoding: "utf-8",
+            complete: res => ingest(res.data, file.name),
+            error: () => { setError("No se ha podido leer el CSV."); setLoading(false); }
+          });
+        } else if (["xlsx", "xls", "xlsm"].includes(ext)) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            try {
+              const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array", cellDates: true });
+              const sheet = wb.Sheets[wb.SheetNames[0]];
+              const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
+              ingest(matrix, file.name);
+            } catch { setError("No se ha podido leer el Excel."); setLoading(false); }
+          };
+          reader.onerror = () => { setError("Error al abrir el archivo."); setLoading(false); };
+          reader.readAsArrayBuffer(file);
+        } else {
+          setError(`Formato .${ext} no admitido.`);
+          setLoading(false);
+        }
+      };
+
+      const addRow = entry => {
+        const row = { id: `r${uid++}`, ...entry, manual: false, añadido: true };
+        setRows(prev => [...prev, row]);
+        setFileName(f => f || "Movimientos añadidos a mano");
+        setError("");
+        setFormOpen(false);
+        const k = monthKey(row.fecha);
+        setMonth(m => m === "all" || m === k ? m : k);
+        setActive(a => a.length && !a.includes(row.categoria) ? [] : a);
+      };
+
+      const deleteRow = id => setRows(prev => {
+        const index = prev.findIndex(r => r.id === id);
+        if (index === -1) return prev;
+        setUndo({ row: prev[index], index });
+        return prev.filter(r => r.id !== id);
+      });
+
+      const restoreRow = () => {
+        if (!undo) return;
+        setRows(prev => {
+          const next = [...prev];
+          next.splice(Math.min(undo.index, next.length), 0, undo.row);
+          return next;
+        });
+        setUndo(null);
+      };
+
+      const reset = () => {
+        if (rows.length && !window.confirm("Se borrarán todos los movimientos. ¿Continuar?")) return;
+        setRows([]);
+        setFileName("");
+        setError("");
+        setNotice("");
+        setQuery("");
+        setActive([]);
+        setUndo(null);
+        setMonth("all");
+        if (inputRef.current) inputRef.current.value = "";
+      };
+
+      const setCategory = (id, cat) => setRows(prev => prev.map(r => r.id === id ? { ...r, categoria: cat, manual: true } : r));
+      const toggleCat = id => setActive(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+      const toggleSort = key => setSort(s => s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" });
+
+      const months = useMemo(() => {
+        const m = new Map();
+        for (const r of rows) {
+          const k = monthKey(r.fecha);
+          if (!m.has(k)) m.set(k, { key: k, ingresos: 0, gastos: 0, n: 0 });
+          const e = m.get(k);
+          if (r.importe >= 0) e.ingresos += r.importe;
+          else e.gastos += -r.importe;
+          e.n++;
+        }
+        return [...m.values()].sort((a, b) => {
+          if (a.key === NO_DATE) return 1;
+          if (b.key === NO_DATE) return -1;
+          return a.key.localeCompare(b.key);
+        }).map(x => ({ ...x, balance: x.ingresos - x.gastos, label: monthLabel(x.key) }));
+      }, [rows]);
+
+      useEffect(() => {
+        if (month !== "all" && rows.length && !months.some(m => m.key === month)) setMonth("all");
+      }, [months, month, rows.length]);
+
+      const scoped = useMemo(() => month === "all" ? rows : rows.filter(r => monthKey(r.fecha) === month), [rows, month]);
+
+      const totals = useMemo(() => {
+        let ingresos = 0, gastos = 0;
+        for (const r of scoped) {
+          if (r.importe >= 0) ingresos += r.importe;
+          else gastos += -r.importe;
+        }
+        return { ingresos, gastos, balance: ingresos - gastos, n: scoped.length };
+      }, [scoped]);
+
+      const breakdown = useMemo(() => {
+        const map = new Map();
+        for (const r of scoped) {
+          if (r.importe >= 0) continue;
+          map.set(r.categoria, (map.get(r.categoria) || 0) + -r.importe);
+        }
+        const arr = [...map.entries()].map(([id, total]) => ({ ...CAT_BY_ID[id], total })).sort((a, b) => b.total - a.total);
+        const sum = arr.reduce((s, c) => s + c.total, 0) || 1;
+        return arr.map(c => ({ ...c, pct: (c.total / sum) * 100 }));
+      }, [scoped]);
+
+      const filtered = useMemo(() => {
+        const q = query.trim();
+        let out = scoped;
+        if (active.length) out = out.filter(r => active.includes(r.categoria));
+        if (q) {
+          const cmp = q.match(/^([<>])\s*([\d.,]+)$/);
+          if (cmp) {
+            const lim = parseAmount(cmp[2]);
+            if (!isNaN(lim)) out = out.filter(r => cmp[1] === ">" ? Math.abs(r.importe) > lim : Math.abs(r.importe) < lim);
+          } else {
+            const nq = strip(q);
+            const num = parseAmount(q);
+            out = out.filter(r => {
+              if (strip(r.concepto).includes(nq)) return true;
+              if (!isNaN(num) && Math.abs(Math.abs(r.importe) - Math.abs(num)) < 0.005) return true;
+              return String(Math.abs(r.importe).toFixed(2)).includes(q.replace(",", "."));
+            });
+          }
+        }
+        const dir = sort.dir === "asc" ? 1 : -1;
+        return [...out].sort((a, b) => {
+          if (sort.key === "importe") return (a.importe - b.importe) * dir;
+          const av = a.fecha ? a.fecha.getTime() : 0;
+          const bv = b.fecha ? b.fecha.getTime() : 0;
+          return (av - bv) * dir;
+        });
+      }, [scoped, query, active, sort]);
+
+      const filteredSum = useMemo(() => filtered.reduce((s, r) => s + r.importe, 0), [filtered]);
+      const hasData = rows.length > 0;
+
+      const onDrop = e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); };
+
+      return (
+        <div style={{ background: T.base, color: T.text, minHeight: "100vh", width: "100%" }}>
+          <Styles />
+          <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+            <input ref={inputRef} type="file" accept=".csv,.txt,.xls,.xlsx,.xlsm" onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
+            <Header hasData={hasData} fileName={fileName} saveState={saveState} onAddFile={() => inputRef.current?.click()} onReset={reset} />
+
+            {!ready ? (
+              <div style={{ marginTop: 32, color: T.muted, fontSize: 14 }}>Recuperando tus movimientos…</div>
+            ) : !hasData ? (
+              <Dropzone dragging={dragging} loading={loading} error={error} onDrop={onDrop} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onSample={() => { setRows([{ id: `r${uid++}`, fecha: new Date("2026-08-01"), concepto: "NOMINA EMPRESA", importe: 2480, categoria: "ingresos", manual: false }]); setFileName("Datos de ejemplo"); }} onManual={() => setFormOpen(true)} />
+            ) : (
+              <>
+                {error && <Banner text={error} tone="error" onClose={() => setError("")} />}
+                {notice && <Banner text={notice} tone="info" onClose={() => setNotice("")} />}
+                <section style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+                  <Metric label="Ingresos" value={eur.format(totals.ingresos)} color={T.income} />
+                  <Metric label="Gastos" value={eur.format(totals.gastos)} color={T.expense} />
+                  <Metric label="Balance" value={eur.format(totals.balance)} color={totals.balance >= 0 ? T.income : T.expense} emphasis sub={`${totals.n} movimientos`} />
+                </section>
+                <section style={{ marginTop: 16, padding: 20, borderRadius: 12, border: `1px solid ${T.lineSoft}`, background: T.panel }}>
+                  <h2 style={{ fontSize: 14, fontWeight: 500, marginBottom: 16 }}>Desglose por categoría</h2>
+                  {breakdown.length ? (
+                    <div>
+                      {breakdown.map(c => (
+                        <div key={c.id} style={{ marginBottom: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                            <span>{c.label}</span>
+                            <span style={{ fontWeight: 500 }}>{eur.format(c.total)}</span>
+                          </div>
+                          <div style={{ height: 6, background: T.lineSoft, borderRadius: 3 }}>
+                            <div style={{ height: "100%", width: `${c.pct}%`, background: c.color, borderRadius: 3, transition: "width 700ms ease" }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, color: T.muted }}>Solo ingresos en este mes.</p>
+                  )}
+                </section>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function Styles() {
+      return <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        .fin-num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+        button:focus-visible { outline: 2px solid #A78BFA; outline-offset: 2px; }
+        input:focus-visible, select:focus-visible { outline: 2px solid #A78BFA; outline-offset: 2px; }
+      `}</style>;
+    }
+
+    function Header({ hasData, fileName, saveState, onAddFile, onReset }) {
+      const save = { saving: { text: "Guardando…", color: T.muted }, saved: { text: "Guardado", color: T.income }, error: { text: "Error al guardar", color: T.expense }, idle: null }[saveState];
+      return (
+        <header style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 11, color: T.brand, fontWeight: 700, marginBottom: 8, letterSpacing: 1.6 }}>GESTOR FINANCIERO</div>
+            <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Dónde va el dinero</h1>
+            <p style={{ fontSize: 13, color: T.muted, maxWidth: 400 }}>Analiza tu extracto bancario y visualiza en qué gastas.</p>
+          </div>
+          {hasData && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={onAddFile} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.panel, color: T.text, cursor: "pointer" }}>+ Añadir extracto</button>
+                <button onClick={onReset} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.panel, color: T.muted, cursor: "pointer" }}>Borrar todo</button>
+              </div>
+              <div style={{ fontSize: 12, color: T.faint }}>
+                {fileName} {save && <span>· {save.text}</span>}
+              </div>
+            </div>
+          )}
+        </header>
+      );
+    }
+
+    function Dropzone({ dragging, loading, error, onDrop, onDragOver, onDragLeave, onSample, onManual }) {
+      return (
+        <section style={{ marginTop: 32 }}>
+          <div onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave} style={{ border: `2px dashed ${dragging ? T.brand : T.line}`, borderRadius: 16, padding: 40, textAlign: "center", background: dragging ? T.raised : T.panel, cursor: "pointer" }}>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>{loading ? "Leyendo archivo…" : "Arrastra aquí tu extracto"}</div>
+            <p style={{ fontSize: 12, color: T.muted }}>CSV, XLS o XLSX.</p>
+            <div style={{ marginTop: 16, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={() => document.querySelector("input[type=file]").click()} style={{ padding: "8px 16px", borderRadius: 8, background: T.brand, color: "#160E2E", fontWeight: 600, cursor: "pointer", border: "none" }}>Seleccionar archivo</button>
+              <button onClick={onSample} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.raised, color: T.text, cursor: "pointer" }}>Datos de ejemplo</button>
+              <button onClick={onManual} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${T.line}`, background: T.raised, color: T.text, cursor: "pointer" }}>Empezar a mano</button>
+            </div>
+          </div>
+          {error && <Banner text={error} tone="error" />}
+        </section>
+      );
+    }
+
+    function Banner({ text, tone = "error", onClose }) {
+      const s = tone === "info" ? { border: T.line, bg: T.raised, fg: T.text } : { border: "#5B2733", bg: "#1C1218", fg: "#FFC9D2" };
+      return (
+        <div style={{ marginTop: 16, border: `1px solid ${s.border}`, background: s.bg, color: s.fg, borderRadius: 12, padding: 12, fontSize: 13, display: "flex", justifyContent: "space-between" }}>
+          <span>{text}</span>
+          {onClose && <button onClick={onClose} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer" }}>✕</button>}
+        </div>
+      );
+    }
+
+    function Metric({ label, value, color, emphasis, sub }) {
+      return (
+        <div style={{ borderRadius: 12, border: `1px solid ${emphasis ? T.line : T.lineSoft}`, background: emphasis ? T.raised : T.panel, padding: 16 }}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>{label}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color, marginBottom: sub ? 4 : 0 }}>{value}</div>
+          {sub && <div style={{ fontSize: 12, color: T.faint }}>{sub}</div>}
+        </div>
+      );
+    }
+
+    /* ====== Render ====== */
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<GestorFinanciero />);
+  </script>
+
+  <!-- Service Worker para PWA -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register(new URL("data:application/javascript;base64,Y29uc3QgQVBQX05BTUUgPSAnR2VzdG9yIEZpbmFuY2llcm8nOyBjb25zdCBDQUNIRVMgPSB7IHY6IDEsIHN0YXRpYzogJ2Zpbi1zdGF0aWMtdjEnIH07IHNlbGYuYWRkRXZlbnRMaXN0ZW5lcignImluc3RhbGwiLCAoKSA9PiBzZWxmLnNraXBXYWl0aW5nKCkpOyBzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2FjdGl2YXRlJywgKGUpID0+IGUud2FpdFVudGlsKGNhY2hlcy5kZWxldGUoQ0FDSEVTLnN0YXRpYyktLnRoZW4oKCkgPT4gc2VsZi5jbGllbnRzLm1hdGNoQWxsKCkpKSk7IHNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCAoZSkgPT4gZS5yZXNwb25kV2l0aChuZXcgUmVzcG9uc2UoJ09mZmxpbmUnLCB7IHN0YXR1czogMjAwIH0pKSk7", import.meta.url));
+    }
+  </script>
+</body>
+</html>
