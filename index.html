@@ -375,7 +375,7 @@ function serialToDate(n){
   const d=new Date(Math.round((n-25569)*86400000));
   return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
 }
-function parseDate(v){
+function parseDate(v,defaultYear){
   if(v==null||v==="")return null;
   if(v instanceof Date)return isNaN(v)?null:v;
   if(typeof v==="number")return (v>20000&&v<60000)?serialToDate(v):null;
@@ -385,6 +385,15 @@ function parseDate(v){
   if(m)return new Date(+m[1],+m[2]-1,+m[3]);
   m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
   if(m){let y=+m[3];if(y<100)y+=2000;return new Date(y,+m[2]-1,+m[1]);}
+  if(defaultYear){
+    m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+    if(m)return new Date(defaultYear,+m[2]-1,+m[1]);
+    m=s.match(/^(\d{1,2})[\s-]+([a-zñ]{3,})\.?$/i);
+    if(m){
+      const mi=MES.indexOf(strip(m[2]).slice(0,3));
+      if(mi>-1)return new Date(defaultYear,mi,+m[1]);
+    }
+  }
   const d=new Date(s);
   return isNaN(d)?null:d;
 }
@@ -743,7 +752,52 @@ function onFile(f){
 }
 function sig(r){return (r.fecha?r.fecha.toISOString().slice(0,10):"")+"|"+strip(r.concepto)+"|"+r.importe.toFixed(2);}
 
-function ingestMatrix(matrix,name){
+function categorySlug(name){
+  return strip(name).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"cat";
+}
+function guessColumns(matrix,defaultYear){
+  const n=Math.min(matrix.length,40);
+  const ncols=Math.max(0,...matrix.slice(0,n).map(r=>(r||[]).length));
+  let bestF=-1,bestFScore=0;
+  for(let col=0;col<ncols;col++){
+    let hits=0,total=0;
+    for(let i=0;i<n;i++){
+      const v=(matrix[i]||[])[col];
+      if(v==null||v==="")continue;
+      total++;
+      if(parseDate(v,defaultYear))hits++;
+    }
+    if(total>=3&&hits/total>0.6&&hits>bestFScore){bestFScore=hits;bestF=col;}
+  }
+  if(bestF===-1)return null;
+  let bestA=-1,bestAScore=0;
+  for(let col=0;col<ncols;col++){
+    if(col===bestF)continue;
+    let hits=0,total=0;
+    for(let i=0;i<n;i++){
+      const v=(matrix[i]||[])[col];
+      if(v==null||v==="")continue;
+      total++;
+      if(!isNaN(parseAmount(v)))hits++;
+    }
+    if(total>=3&&hits/total>0.6&&hits>bestAScore){bestAScore=hits;bestA=col;}
+  }
+  if(bestA===-1)return null;
+  let bestC=-1,bestLen=0;
+  for(let col=0;col<ncols;col++){
+    if(col===bestF||col===bestA)continue;
+    let len=0,total=0;
+    for(let i=0;i<n;i++){
+      const v=(matrix[i]||[])[col];
+      if(v==null||v==="")continue;
+      total++;len+=String(v).length;
+    }
+    if(total>=3&&len>bestLen){bestLen=len;bestC=col;}
+  }
+  if(bestC===-1)return null;
+  return {f:bestF,c:bestC,a:bestA,cargo:-1,abono:-1,cat:-1,fj:-1,noHeader:true};
+}
+function ingestMatrix(matrix,name,defaultYear,forceExpense){
   ensureBoard();
   if(!matrix||matrix.length<2)throw new Error("El archivo parece vacío.");
   let hi=-1,cols=null;
@@ -754,12 +808,32 @@ function ingestMatrix(matrix,name){
     const a=h.findIndex(x=>/importe|amount|cantidad|euros/.test(x));
     const cargo=h.findIndex(x=>/cargo|debe|debito/.test(x));
     const abono=h.findIndex(x=>/abono|haber|credito/.test(x));
-    if(c>-1&&(a>-1||(cargo>-1&&abono>-1))){hi=i;cols={f,c,a,cargo,abono};break;}
+    const cat=h.findIndex(x=>/categor/.test(x));
+    const fj=h.findIndex(x=>/fijo/.test(x));
+    if(c>-1&&(a>-1||(cargo>-1&&abono>-1))){hi=i;cols={f,c,a,cargo,abono,cat,fj};break;}
   }
-  if(hi===-1)throw new Error("No encuentro las columnas. El archivo necesita una fila de cabecera con 'fecha', 'concepto' e 'importe'.");
+  if(hi===-1){
+    cols=guessColumns(matrix,defaultYear);
+    if(!cols)throw new Error("No encuentro las columnas. El archivo necesita una fila de cabecera con 'fecha', 'concepto' e 'importe'.");
+  }else if(cols.f===-1){
+    let bestCol=-1,bestHits=0;
+    const ncols=(matrix[hi]||[]).length;
+    for(let col=0;col<ncols;col++){
+      if(col===cols.c||col===cols.a||col===cols.cat||col===cols.fj)continue;
+      let hits=0,total=0;
+      for(let i=hi+1;i<Math.min(matrix.length,hi+30);i++){
+        const v=(matrix[i]||[])[col];
+        if(v==null||v==="")continue;
+        total++;
+        if(parseDate(v,defaultYear))hits++;
+      }
+      if(total>=3&&hits/total>0.6&&hits>bestHits){bestHits=hits;bestCol=col;}
+    }
+    if(bestCol>-1)cols.f=bestCol;
+  }
   const seen=new Set(rows.map(sig));
   let added=0,dupes=0;
-  for(let i=hi+1;i<matrix.length;i++){
+  for(let i=cols.noHeader?0:hi+1;i<matrix.length;i++){
     const p=matrix[i]||[];
     const concepto=String(p[cols.c]??"").trim();
     if(!concepto)continue;
@@ -770,8 +844,25 @@ function ingestMatrix(matrix,name){
       importe=!isNaN(h)&&h!==0?Math.abs(h):(!isNaN(d)&&d!==0?-Math.abs(d):NaN);
     }
     if(isNaN(importe))continue;
-    const fecha=cols.f>-1?parseDate(p[cols.f]):null;
-    const row={id:"r"+(uid++),fecha,concepto,importe,categoria:categorize(concepto,importe),manual:false,añadido:false};
+    const fecha=cols.f>-1?parseDate(p[cols.f],defaultYear):null;
+    const catRaw=cols.cat>-1?String(p[cols.cat]??"").trim():"";
+    const fijoRaw=cols.fj>-1?String(p[cols.fj]??"").trim():"";
+    if(forceExpense&&importe>0){
+      const looksIncome=KEYS.ingresos.some(w=>(strip(concepto)+" "+strip(catRaw)).includes(w));
+      if(!looksIncome)importe=-Math.abs(importe);
+    }
+    let categoria;
+    if(catRaw){
+      const id=categorySlug(catRaw);
+      if(!CATS[id]){
+        customCats[id]={label:catRaw,color:nextCatColor(),tipo:fijoRaw?(/fijo/i.test(fijoRaw)?"fijo":"variable"):undefined};
+        rebuildCats();
+      }
+      categoria=id;
+    }else{
+      categoria=categorize(concepto,importe);
+    }
+    const row={id:"r"+(uid++),fecha,concepto,importe,categoria,manual:false,añadido:false};
     const s=sig(row);
     if(seen.has(s)){dupes++;continue;}
     seen.add(s);rows.push(row);added++;
@@ -789,9 +880,36 @@ function extractSheetInfo(link){
   const g=link.match(/[?&#]gid=(\d+)/);
   return {id:m[1],gid:g?g[1]:"0"};
 }
+function tabDateContext(title){
+  const s=strip(title);
+  const ym=s.match(/(20\d{2})/);
+  const year=ym?+ym[1]:null;
+  let month=null;
+  for(let i=0;i<MES.length;i++){
+    if(s.includes(MES[i])){month=i+1;break;}
+  }
+  return {month,year:year||(month?(month>=9?2025:2026):2026)};
+}
+async function driveDiscoverTabs(id){
+  try{
+    const res=await fetch("https://docs.google.com/spreadsheets/d/"+id+"/edit");
+    if(!res.ok)return [];
+    const html=await res.text();
+    const re=/\[\d+,0,\\"(\d+)\\",\[\{\\"1\\":\[\[0,0,\\"([^\\]+)\\"\]/g;
+    const out=[];let m;
+    while((m=re.exec(html)))out.push({gid:m[1],title:m[2]});
+    return out;
+  }catch(e){return [];}
+}
+function switchOrCreateBoardByName(name){
+  syncBoard();
+  let b=boards.find(x=>x.name===name);
+  if(!b){b=blankBoard(name);boards.push(b);}
+  loadBoardData(b);
+}
 async function importFromDrive(){
   let link=localStorage.getItem("fin:sheetlink");
-  if(link&&!confirm("Ya tienes conectada una hoja de Google Sheets. ¿Actualizar desde esa misma hoja? (Cancelar para pegar un enlace distinto)")){
+  if(link&&!confirm("Ya tienes conectada una hoja de Google Sheets. ¿Actualizar desde ella? (Cancelar para pegar un enlace distinto)")){
     link=null;
   }
   if(!link){
@@ -803,13 +921,28 @@ async function importFromDrive(){
   if(!info){banner("Ese enlace no parece una hoja de Google Sheets válida.","err");return;}
   busy(true,"Leyendo Google Sheets…");
   try{
-    const url="https://docs.google.com/spreadsheets/d/"+info.id+"/gviz/tq?tqx=out:csv&gid="+info.gid;
-    const res=await fetch(url);
-    if(!res.ok)throw new Error('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".');
-    const text=await res.text();
-    if(/^\s*<(!DOCTYPE|html)/i.test(text))throw new Error('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".');
-    ingestMatrix(csvToMatrix(text),"Google Sheets");
+    const discovered=await driveDiscoverTabs(info.id);
+    const targets=discovered.length?discovered:[{gid:info.gid,title:null}];
+    let okTabs=0;const failTabs=[];
+    for(const t of targets){
+      try{
+        const url="https://docs.google.com/spreadsheets/d/"+info.id+"/gviz/tq?tqx=out:csv&gid="+t.gid;
+        const res=await fetch(url);
+        if(!res.ok)throw new Error("no accesible");
+        const text=await res.text();
+        if(/^\s*<(!DOCTYPE|html)/i.test(text))throw new Error("requiere iniciar sesión");
+        const title=t.title||"Google Sheets";
+        switchOrCreateBoardByName(title);
+        const ctx=tabDateContext(title);
+        ingestMatrix(csvToMatrix(text),title,ctx.year,true);
+        okTabs++;
+      }catch(err){
+        failTabs.push(t.title||("gid "+t.gid));
+      }
+    }
     localStorage.setItem("fin:sheetlink",link);
+    if(okTabs)banner("Importadas "+okTabs+" pestaña"+(okTabs===1?"":"s")+" desde Google Sheets"+(failTabs.length?" · no se pudo leer: "+failTabs.join(", "):""),failTabs.length?"err":"info",failTabs.length?11000:4500);
+    else banner('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".',"err",9000);
   }catch(err){
     banner(err.message||"No se pudo leer la hoja de Google Sheets.","err",9000);
   }finally{
