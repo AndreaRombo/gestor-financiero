@@ -808,7 +808,7 @@ function ingestMatrix(matrix,name,defaultYear,forceExpense){
     const a=h.findIndex(x=>/importe|amount|cantidad|euros/.test(x));
     const cargo=h.findIndex(x=>/cargo|debe|debito/.test(x));
     const abono=h.findIndex(x=>/abono|haber|credito/.test(x));
-    const cat=h.findIndex(x=>/categor/.test(x));
+    const cat=h.findIndex(x=>/categor/.test(x)||x==="tag");
     const fj=h.findIndex(x=>/fijo/.test(x));
     if(c>-1&&(a>-1||(cargo>-1&&abono>-1))){hi=i;cols={f,c,a,cargo,abono,cat,fj};break;}
   }
