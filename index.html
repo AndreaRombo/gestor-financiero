@@ -213,6 +213,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
         <span class="savedot" id="savedot"><i></i><span id="savetxt"></span></span>
         <button class="btn" id="addBtn" onclick="pickFile()">Añadir extracto</button>
         <button class="btn" id="driveBtn" onclick="importFromDrive()">Desde Google Sheets</button>
+        <button class="btn ghost sm" onclick="setupWriteUrl()" title="Configurar o cambiar la escritura hacia tu Google Sheet">🔗 Escritura Sheets</button>
         <button class="btn primary" onclick="openForm()">Añadir movimiento</button>
         <button class="btn ghost" onclick="wipe()">Borrar movimientos</button>
       </div>
@@ -797,7 +798,7 @@ function guessColumns(matrix,defaultYear){
   if(bestC===-1)return null;
   return {f:bestF,c:bestC,a:bestA,cargo:-1,abono:-1,cat:-1,fj:-1,noHeader:true};
 }
-function ingestMatrix(matrix,name,defaultYear,forceExpense){
+function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
   ensureBoard();
   if(!matrix||matrix.length<2)throw new Error("El archivo parece vacío.");
   let hi=-1,cols=null;
@@ -863,6 +864,9 @@ function ingestMatrix(matrix,name,defaultYear,forceExpense){
       categoria=categorize(concepto,importe);
     }
     const row={id:"r"+(uid++),fecha,concepto,importe,categoria,manual:false,añadido:false};
+    if(srcMeta){
+      row.src={gid:srcMeta.gid,row:i+1,catCol:cols.cat>-1?cols.cat+1:0,fjCol:cols.fj>-1?cols.fj+1:0,cCol:cols.c+1};
+    }
     const s=sig(row);
     if(seen.has(s)){dupes++;continue;}
     seen.add(s);rows.push(row);added++;
@@ -934,7 +938,7 @@ async function importFromDrive(){
         const title=t.title||"Google Sheets";
         switchOrCreateBoardByName(title);
         const ctx=tabDateContext(title);
-        ingestMatrix(csvToMatrix(text),title,ctx.year,true);
+        ingestMatrix(csvToMatrix(text),title,ctx.year,true,{gid:t.gid});
         okTabs++;
       }catch(err){
         failTabs.push(t.title||("gid "+t.gid));
@@ -943,11 +947,28 @@ async function importFromDrive(){
     localStorage.setItem("fin:sheetlink",link);
     if(okTabs)banner("Importadas "+okTabs+" pestaña"+(okTabs===1?"":"s")+" desde Google Sheets"+(failTabs.length?" · no se pudo leer: "+failTabs.join(", "):""),failTabs.length?"err":"info",failTabs.length?11000:4500);
     else banner('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".',"err",9000);
+    if(okTabs&&localStorage.getItem("fin:writeurl")===null)setupWriteUrl();
   }catch(err){
     banner(err.message||"No se pudo leer la hoja de Google Sheets.","err",9000);
   }finally{
     busy(false);
   }
+}
+function setupWriteUrl(){
+  const url=prompt('¿Quieres que los cambios de categoría/concepto que hagas en la app se guarden también en tu Google Sheet?\n\nPega aquí la URL de tu Apps Script Web App (ver README para cómo crearla), o deja esto vacío y pulsa Aceptar para no activarlo:');
+  localStorage.setItem("fin:writeurl",(url&&url.trim())?url.trim():"");
+}
+async function writeBackCell(gid,row,col,value){
+  const url=localStorage.getItem("fin:writeurl");
+  if(!url||!col)return;
+  try{
+    await fetch(url,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"setCell",gid,row,col,value})
+    });
+  }catch(e){}
 }
 
 /* ---------- ejemplo ---------- */
@@ -1072,6 +1093,13 @@ function setCat(id,cat){
   const r=rows.find(x=>x.id===id);
   if(!r)return;
   r.categoria=cat;r.manual=true;save();render();
+  if(r.src){
+    const c=CATS[cat];
+    if(c){
+      if(r.src.catCol)writeBackCell(r.src.gid,r.src.row,r.src.catCol,c.label);
+      if(r.src.fjCol&&c.tipo)writeBackCell(r.src.gid,r.src.row,r.src.fjCol,c.tipo==="fijo"?"Fijo":"Variable");
+    }
+  }
 }
 function setConcepto(id,value){
   const r=rows.find(x=>x.id===id);
@@ -1079,6 +1107,7 @@ function setConcepto(id,value){
   const v=value.replace(/\s+/g," ").trim();
   if(!v||v===r.concepto){render();return;}
   r.concepto=v;save();render();
+  if(r.src&&r.src.cCol)writeBackCell(r.src.gid,r.src.row,r.src.cCol,v);
 }
 function wipe(){
   if(rows.length&&!confirm("¿Borrar todos los movimientos de esta pestaña? No se puede deshacer."))return;
@@ -1237,7 +1266,15 @@ function applyBulkCategory(){
   const cat=document.getElementById("bulkCat").value;
   if(!cat)return;
   let n=0;
-  rows.forEach(r=>{if(selected.has(r.id)){r.categoria=cat;r.manual=true;n++;}});
+  const c=CATS[cat];
+  rows.forEach(r=>{
+    if(!selected.has(r.id))return;
+    r.categoria=cat;r.manual=true;n++;
+    if(r.src&&c){
+      if(r.src.catCol)writeBackCell(r.src.gid,r.src.row,r.src.catCol,c.label);
+      if(r.src.fjCol&&c.tipo)writeBackCell(r.src.gid,r.src.row,r.src.fjCol,c.tipo==="fijo"?"Fijo":"Variable");
+    }
+  });
   selected.clear();
   save();render();
   banner("Categoría actualizada en "+n+" movimientos.");

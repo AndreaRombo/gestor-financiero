@@ -35,10 +35,52 @@ Botón "Desde Google Sheets" (en la pantalla inicial y en la cabecera):
 4. Si la hoja no trae signo en el importe (algunas plantillas de presupuesto guardan todo en positivo), la app asume que es un gasto salvo que el concepto o la categoría suene claramente a ingreso (nómina, transferencia recibida, etc.).
 5. Si una fecha viene sin año (p. ej. "07/01"), lo infiere del nombre de la pestaña (busca un año de 4 dígitos o el nombre del mes; si no encuentra nada, asume 2025 para pestañas de sep-dic y 2026 para ene-ago — ajusta esto en el código si tu ciclo cambia).
 
+## Escribir cambios de vuelta en Google Sheets
+
+Cuando cambias la categoría o editas el concepto de un movimiento que vino de Google Sheets, la app puede guardar ese cambio también en la celda original de tu hoja — así la corrección persiste para la próxima importación, y la ve cualquiera que use la misma hoja compartida.
+
+Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola vez desde tu cuenta (sin pantallas de "app no verificada"), y la app le manda peticiones sin que nadie tenga que iniciar sesión con Google desde el navegador.
+
+**Cómo activarlo:**
+
+1. Abre tu Google Sheet → menú **Extensiones → Apps Script**.
+2. Borra el contenido de `Código.gs` y pega esto:
+
+   ```javascript
+   function doPost(e) {
+     var body = JSON.parse(e.postData.contents);
+     var ss = SpreadsheetApp.getActiveSpreadsheet();
+     var sheet = null;
+     var sheets = ss.getSheets();
+     for (var i = 0; i < sheets.length; i++) {
+       if (String(sheets[i].getSheetId()) === String(body.gid)) { sheet = sheets[i]; break; }
+     }
+     if (!sheet) {
+       return ContentService.createTextOutput(JSON.stringify({error: "sheet not found"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
+     sheet.getRange(body.row, body.col).setValue(body.value);
+     return ContentService.createTextOutput(JSON.stringify({ok: true}))
+       .setMimeType(ContentService.MimeType.JSON);
+   }
+   ```
+
+3. Guarda el proyecto (ponle un nombre, p. ej. "GestorFinancieroAPI").
+4. **Implementar → Nueva implementación** → tipo **Aplicación web**.
+   - Ejecutar como: **Yo** (tu cuenta).
+   - Quién tiene acceso: **Cualquier usuario**.
+5. Pulsa Implementar. Te pedirá autorizar el script para editar tus hojas — es un permiso tuyo, sobre tu propia hoja, un único clic de "Permitir".
+6. Copia la URL de la aplicación web (termina en `/exec`).
+7. En la app, botón **"🔗 Escritura Sheets"** en la cabecera → pega esa URL cuando te la pida.
+
+A partir de ahí, cambiar una categoría en la app también la cambia en la hoja (columna Categoría/Tag y, si existe, Fijo/Variable). Editar un concepto actualiza la columna Concepto/Descripción. Los movimientos añadidos a mano en la app, o los importados desde un Excel local (no Sheets), no se escriben de vuelta a ningún sitio — solo aplica a filas que vinieron de una hoja de Sheets importada.
+
+Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue funcionando igual, solo que los cambios se quedan solo en tu navegador.
+
 ## Estructura de datos
 
 - **Pestaña (board)**: `{ id, name, fileName, rows, customCats, month, active, sort, cutoff }`
-- **Movimiento (row)**: `{ id, fecha, concepto, importe, categoria, manual, añadido }` — `importe` negativo es gasto, positivo es ingreso.
+- **Movimiento (row)**: `{ id, fecha, concepto, importe, categoria, manual, añadido, src? }` — `importe` negativo es gasto, positivo es ingreso. `src` (`{ gid, row, catCol, fjCol, cCol }`) solo existe si el movimiento vino de Google Sheets, y es lo que permite escribir cambios de vuelta a la celda original.
 - **Categoría**: built-in (`BASE_CATS`) + personalizadas por pestaña (`customCats`), cada una con `{ label, color, tipo }` donde `tipo` es `"fijo"` o `"variable"`.
 
 ## Desarrollo / cómo contribuir
