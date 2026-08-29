@@ -13,6 +13,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
 :root{
   --base:#0A0D14; --panel:#121722; --raised:#171E2B; --line:#242C3D; --lineSoft:#1C2434; --lineHover:#2E3849;
@@ -212,6 +214,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
       <div class="hactions" id="hactions" hidden>
         <span class="savedot" id="savedot"><i></i><span id="savetxt"></span></span>
         <button class="btn" id="addBtn" onclick="pickFile()">Añadir extracto</button>
+        <button class="btn" id="driveBtn" onclick="importFromDrive()">Desde Drive</button>
         <button class="btn primary" onclick="openForm()">Añadir movimiento</button>
         <button class="btn ghost" onclick="wipe()">Borrar movimientos</button>
       </div>
@@ -226,6 +229,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
       <p>Acepta Excel (.xlsx, .xlsm, .xls) y CSV. Detecta solo fecha, concepto e importe.</p>
       <div class="dbtns">
         <button class="btn primary" id="pickBtn" onclick="pickFile()">Seleccionar archivo</button>
+        <button class="btn" onclick="importFromDrive()">Desde Google Drive</button>
         <button class="btn" onclick="loadSample()">Cargar datos de ejemplo</button>
         <button class="btn ghost" onclick="startBlank()">Empezar a mano</button>
       </div>
@@ -539,7 +543,7 @@ function banner(msg,type="info",ms=4500){
   if(ms)setTimeout(()=>div.remove(),ms);
 }
 function busy(on,label){
-  ["pickBtn","addBtn"].forEach(id=>{
+  ["pickBtn","addBtn","driveBtn"].forEach(id=>{
     const b=document.getElementById(id);
     if(!b)return;
     b.disabled=on;
@@ -778,6 +782,99 @@ function ingestMatrix(matrix,name){
   fileName=name;save();
   banner(added+" movimientos añadidos"+(dupes?" · "+dupes+" duplicados omitidos":""));
   show();
+}
+
+/* ---------- Google Drive ---------- */
+let gisTokenClient=null,gisAccessToken=null;
+function driveCred(key,label){
+  let v=localStorage.getItem(key);
+  if(!v){
+    v=prompt(label);
+    if(v&&v.trim()){v=v.trim();localStorage.setItem(key,v);}else v=null;
+  }
+  return v;
+}
+function loadPicker(){
+  return new Promise((resolve,reject)=>{
+    if(typeof gapi==="undefined"){reject(new Error("No se ha podido cargar la librería de Google (revisa tu conexión)."));return;}
+    gapi.load("picker",{callback:resolve,onerror:()=>reject(new Error("No se ha podido cargar el selector de Google Drive."))});
+  });
+}
+function driveAuth(clientId){
+  return new Promise((resolve,reject)=>{
+    if(typeof google==="undefined"||!google.accounts){reject(new Error("No se ha podido cargar el inicio de sesión de Google (revisa tu conexión)."));return;}
+    if(!gisTokenClient){
+      gisTokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:clientId,
+        scope:"https://www.googleapis.com/auth/drive.file",
+        callback:()=>{}
+      });
+    }
+    gisTokenClient.callback=(resp)=>{
+      if(resp.error){reject(new Error("No se pudo conectar con tu cuenta de Google."));return;}
+      gisAccessToken=resp.access_token;
+      resolve(gisAccessToken);
+    };
+    gisTokenClient.requestAccessToken({prompt:gisAccessToken?"":"consent"});
+  });
+}
+function openDrivePicker(apiKey,token){
+  return new Promise((resolve)=>{
+    const view=new google.picker.DocsView()
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false)
+      .setMimeTypes("application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,text/csv,application/vnd.google-apps.spreadsheet");
+    const picker=new google.picker.PickerBuilder()
+      .setOAuthToken(token)
+      .setDeveloperKey(apiKey)
+      .addView(view)
+      .setCallback(data=>{
+        if(data.action===google.picker.Action.PICKED)resolve(data.docs[0]);
+        else if(data.action===google.picker.Action.CANCEL)resolve(null);
+      })
+      .build();
+    picker.setVisible(true);
+  });
+}
+async function driveFetchFile(fileId,token){
+  const metaRes=await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"?fields=id,name,mimeType",{headers:{Authorization:"Bearer "+token}});
+  if(!metaRes.ok)throw new Error("No se pudo acceder al archivo de Drive.");
+  const meta=await metaRes.json();
+  let url,name=meta.name;
+  if(meta.mimeType==="application/vnd.google-apps.spreadsheet"){
+    url="https://www.googleapis.com/drive/v3/files/"+fileId+"/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if(!/\.xlsx$/i.test(name))name+=".xlsx";
+  }else{
+    url="https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media";
+  }
+  const fileRes=await fetch(url,{headers:{Authorization:"Bearer "+token}});
+  if(!fileRes.ok)throw new Error("No se pudo descargar el archivo de Drive.");
+  const buf=await fileRes.arrayBuffer();
+  return {buf,name};
+}
+async function importFromDrive(){
+  const clientId=driveCred("fin:gclientid","Pega el Client ID de OAuth de Google Cloud (termina en .apps.googleusercontent.com):");
+  if(!clientId)return;
+  const apiKey=driveCred("fin:gapikey","Pega la API key de Google Cloud (restringida a Google Picker API):");
+  if(!apiKey)return;
+  busy(true,"Conectando con Drive…");
+  try{
+    await loadPicker();
+    const token=await driveAuth(clientId);
+    const doc=await openDrivePicker(apiKey,token);
+    if(!doc)return;
+    const {buf,name}=await driveFetchFile(doc.id,token);
+    const ext=(name.split(".").pop()||"").toLowerCase();
+    let matrix;
+    if(ext==="xlsx"||ext==="xlsm")matrix=await xlsxToMatrix(buf);
+    else if(ext==="xls")matrix=await xlsToMatrix(buf);
+    else matrix=csvToMatrix(new TextDecoder("utf-8").decode(buf));
+    ingestMatrix(matrix,name);
+  }catch(err){
+    banner(err.message||"No se pudo importar desde Drive.","err",9000);
+  }finally{
+    busy(false);
+  }
 }
 
 /* ---------- ejemplo ---------- */
