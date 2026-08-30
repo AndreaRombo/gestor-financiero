@@ -15,7 +15,7 @@ No hay build, no hay bundler, no hay backend propio, no hay base de datos. `inde
 
 ## Persistencia de datos
 
-Todo vive en `localStorage` del navegador, bajo tres claves con el prefijo `fin:`:
+Todo vive en `localStorage` del navegador, bajo claves con el prefijo `fin:`:
 
 | Clave | Contenido |
 |---|---|
@@ -23,6 +23,7 @@ Todo vive en `localStorage` del navegador, bajo tres claves con el prefijo `fin:
 | `fin:theme` | Preferencia de tema claro/oscuro |
 | `fin:sheetlink` | Último enlace de Google Sheets conectado (para poder "actualizar" sin volver a pegarlo) |
 | `fin:writeurl` / `fin:writesecret` | URL del Apps Script Web App y el código secreto, si se activó la escritura de vuelta a Sheets |
+| `fin:sheettabs` | Última lista de pestañas (`gid`+nombre) descubiertas con éxito en la hoja conectada — red de seguridad si el descubrimiento automático falla en algún dispositivo (ver más abajo) |
 
 **Regla dura: nunca se cambia el nombre de una clave existente en producción** — rompe los datos ya guardados de cualquier usuaria. Si hace falta cambiar la forma de los datos, se versiona dentro del propio objeto guardado (como ya pasó: `fin:v2` reemplazó a un formato anterior sin versión, con lectura retrocompatible en `load()`).
 
@@ -70,6 +71,13 @@ Detección de columnas (`ingestMatrix()`): busca cabeceras por texto (fecha/conc
 - **Sigue sin sincronizarse**: ediciones de `importe`/`fecha` de un movimiento ya existente, y borrados — eso es la causa restante de posible divergencia entre dispositivos, documentado como fuera de alcance explícito en el spec.
 
 **Fix: emparejar pestañas de Sheets por `gid`, no por nombre** (`switchOrCreateBoardByTab()`, antes `switchOrCreateBoardByName()`): tras activar la auto-sincronización, un dispositivo nuevo (el móvil) podía acabar con una pestaña duplicada que no existía en el ordenador. Causa: `driveDiscoverTabs()` extrae el título de cada pestaña haciendo scraping de un patrón dentro del HTML interno de Google (técnica no oficial, ya documentada como frágil más arriba) — si esa extracción devuelve el título con una variación mínima (espacio, mayúscula, algún carácter distinto) entre dos sincronizaciones o entre dos dispositivos, emparejar por nombre exacto fallaba y creaba una pestaña nueva en vez de reutilizar la existente. Ahora se empareja primero por `gid` (recorriendo todos los boards en busca de una fila con `row.src.gid` igual al de la pestaña que se está sincronizando — el `gid` es un ID numérico estable de Google, no depende del scraping), y solo cae a emparejar por nombre la primera vez que se sincroniza esa pestaña (cuando ningún board tiene aún ninguna fila con ese `gid`). Si el nombre de la pestaña cambió en Sheets, el board existente se renombra para reflejarlo en vez de crear uno nuevo. Validado con el servidor mock: sincronizar dos veces el mismo `gid` con títulos distintos reutiliza el mismo board y solo actualiza su nombre.
+
+**Fix: pestañas conocidas como red de seguridad cuando `driveDiscoverTabs()` falla** (`getKnownTabs()`/`saveKnownTabs()`/`currentKnownTabs()`, `localStorage` key `fin:sheettabs`): confirmado con la usuaria en un móvil real — `driveDiscoverTabs()` puede fallar directamente en ciertos navegadores/dispositivos (Google puede servir contenido distinto según el `User-Agent`, algo fuera de control del cliente), dejando ese dispositivo con una única pestaña genérica "Google Sheets" con datos incompletos en vez de las pestañas reales. Dos piezas:
+
+1. Cada sincronización que descubre pestañas con éxito (`syncSheetTabs()`) guarda esa lista real (`gid`+nombre) en `fin:sheettabs`, asociada al ID de la hoja (`saveKnownTabs()`). Si `driveDiscoverTabs()` devuelve vacío en una sincronización posterior, `syncSheetTabs()` cae a esa lista guardada (`getKnownTabs()`) en vez del genérico `[{gid: <el de la URL pegada>, title:null}]` de antes.
+2. `buildShareLink()` incluye la lista de pestañas dentro del enlace de configuración — pero **no depende de que `fin:sheettabs` ya esté rellena**: calcula la lista en el momento de generar el enlace directamente a partir del estado vivo de la app (`currentKnownTabs()`, recorre todos los `boards` en busca de filas con `.src.gid`, deduplicando por `gid`). Esto importa porque `fin:sheettabs` solo se rellena cuando `syncSheetTabs()` corre y tiene éxito con el código nuevo — si el enlace se generó sin que eso hubiera pasado todavía en ese navegador (p. ej. justo tras desplegar el fix, sin haber vuelto a pulsar "Importar" antes de generar el enlace), la caché estaría vacía y el enlace saldría sin pestañas aunque el resto del flujo se siguiera bien. `currentKnownTabs()` evita depender de ese orden de pasos: reflleja lo que la app tiene delante en ese momento, que es exactamente lo que se quiere replicar en el otro dispositivo. Solo cae a `getKnownTabs()` (la caché) si `currentKnownTabs()` no encuentra nada (p. ej. pestaña recién creada sin filas `.src` todavía).
+
+Quien generó un enlace para compartir antes de este fix debe generarlo de nuevo — el anterior no lleva la lista de pestañas.
 
 ## Seguridad
 
