@@ -71,6 +71,9 @@ assertEqual(categorize("NOMINA ADECCO GROUP",2480),"ingresos","categorize nomina
 assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",-20),"varios","categorize gasto desconocido -> varios");
 assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",20),"ingresos","categorize positivo desconocido -> ingresos (por signo)");
 assertEqual(categorize("REPSOL E.S. FUENGIROLA",-60),"transporte","categorize gasolinera -> transporte");
+assertEqual(categorize("RECIBO IBERDROLA CLIENTES",-78),"suministros","categorize Iberdrola -> suministros");
+assertEqual(categorize("RESTAURANTE LA TERRAZA",-45),"ocio","categorize restaurante -> ocio");
+assertEqual(categorize("UBER EATS PEDIDO 23:45",-22),"ocio","categorize keyword mas larga gana el empate (uber eats > uber)");
 
 /* ---------- categorySlug ---------- */
 assertEqual(categorySlug("Hipoteca"),"hipoteca","categorySlug basico");
@@ -173,29 +176,6 @@ assertContrastAA(LIGHT.income,LIGHT.base,"[claro] verde ingresos sobre fondo");
 assertContrastAA(LIGHT.expense,LIGHT.base,"[claro] rojo gastos sobre fondo");
 assertContrastAA("#0A0414","#A78BFA","texto de boton primario sobre morado (oscuro)");
 assertContrastAA("#0A0414","#7C5CFC","texto de boton primario sobre morado (claro)");
-
-/* ---------- licencia Pro (getLicenseState/setLicenseState/clearLicenseState/isPro) ---------- */
-(function(){
-  const backup=localStorage.getItem("fin:license");
-  try{
-    clearLicenseState();
-    assertNull(getLicenseState(),"getLicenseState sin nada guardado da null");
-    assertTrue(!isPro(),"isPro() es false sin licencia guardada");
-
-    setLicenseState({key:"ABC-123",valid:true,checkedAt:1,uses:1});
-    assertEqual(getLicenseState().key,"ABC-123","setLicenseState/getLicenseState guardan y leen la key");
-    assertTrue(isPro(),"isPro() es true con valid:true y key presente");
-
-    setLicenseState({key:"ABC-123",valid:false});
-    assertTrue(!isPro(),"isPro() es false si valid:false aunque haya key");
-
-    clearLicenseState();
-    assertNull(getLicenseState(),"clearLicenseState borra el estado guardado");
-    assertTrue(!isPro(),"isPro() vuelve a false tras clearLicenseState");
-  } finally {
-    if(backup===null) localStorage.removeItem("fin:license"); else localStorage.setItem("fin:license",backup);
-  }
-})();
 
 document.getElementById("out").innerHTML=lines.join("");
 document.getElementById("summary").innerHTML=

@@ -52,7 +52,6 @@ let rows = [], boards = [];
 
 // localStorage: prefijo "fin:" + nombre
 localStorage.getItem('fin:v2')       // datos (pestañas/movimientos)
-localStorage.getItem('fin:license')  // estado de licencia Pro
 localStorage.getItem('fin:theme')    // tema claro/oscuro
 ```
 
@@ -116,7 +115,7 @@ color: #1a1a1a;
 ✗ Programar una funcionalidad nueva sin plan (ver skill SDD) — solo vale para fixes triviales de 1-2 líneas
 ✗ Tocar lib.js sin actualizar tests.html si el comportamiento cambia
 ✗ Colores hardcodeados en CSS en vez de las variables --base/--text/--income/...
-✗ Cambiar nombres de claves localStorage (fin:v2, fin:license, fin:theme)
+✗ Cambiar nombres de claves localStorage (fin:v2, fin:theme)
 ✗ Dejar que el agente haga commit/push sin que la persona lo revise antes
 ✗ Push directo a main saltándose la Pull Request
 ✗ Mezclar varias funcionalidades no relacionadas en un solo commit
