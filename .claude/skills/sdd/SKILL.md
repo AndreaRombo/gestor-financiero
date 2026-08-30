@@ -69,6 +69,24 @@ TechPlan → NUNCA saltar si el Coder va a escribir código significativo
 Coder    → Siempre necesario para materializar el código
 ```
 
+### Regla concreta de este repo: ¿hace falta un spec-N?
+
+"Parece pequeño" no es un criterio fiable — un fix de bug puede colar de rondón una decisión de diseño real. Usa esto en su lugar:
+
+```
+¿El cambio introduce algo que la usuaria ve por primera vez
+(una UI nueva, un flujo nuevo) O hubo que elegir entre más de
+un enfoque viable?
+  → Sí → gánate un spec corto en docs/sdd/spec-N-nombre.md
+          (medio folio basta: qué, por qué, qué se descartó y
+          por qué — no hace falta el ceremonial completo)
+  → No (bug con causa clara, ajuste acotado a un flujo
+        existente, sin UI nueva) → fix directo, documentar en
+        CHANGELOG.md/docs/TECHNICAL.md, sin spec
+```
+
+Ejemplo real de esta regla en acción (2026-08-30): el modal de "Escritura en Sheets" (PR #8) era UI nueva con una decisión real entre enfoques (modal propio vs. otras alternativas) y se implementó sin spec — la decisión y su porqué solo quedaron en la conversación, no en el repo. En cambio, el aviso de `file://`, que el modal no se cerrara al clic fuera, o sustituir un ID filtrado, sí eran bugs con causa clara y fue correcto ir directos al fix.
+
 ---
 
 ## Las 4 fases — referencia rápida
