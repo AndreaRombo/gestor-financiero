@@ -250,7 +250,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
       <p>Acepta Excel (.xlsx, .xlsm, .xls) y CSV. Detecta solo fecha, concepto e importe.</p>
       <div class="dbtns">
         <button class="btn primary" id="pickBtn" onclick="pickFile()">Seleccionar archivo</button>
-        <button class="btn" onclick="importFromDrive()">Desde Google Sheets</button>
+        <button class="btn" id="driveBtnLanding" onclick="importFromDrive()">Desde Google Sheets</button>
         <button class="btn" onclick="loadSample()">Cargar datos de ejemplo</button>
         <button class="btn ghost" onclick="startBlank()">Empezar a mano</button>
       </div>
@@ -505,7 +505,7 @@ function banner(msg,type="info",ms=4500){
   if(ms)setTimeout(()=>div.remove(),ms);
 }
 function busy(on,label){
-  ["pickBtn","addBtn","driveBtn"].forEach(id=>{
+  ["pickBtn","addBtn","driveBtn","driveBtnLanding"].forEach(id=>{
     const b=document.getElementById(id);
     if(!b)return;
     b.disabled=on;
