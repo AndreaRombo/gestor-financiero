@@ -41,19 +41,26 @@ Con solo 2 tarjetas (Fijo/Variable, sin "Sin clasificar"), la rejilla de 3 colum
 ### 5. Jerarquía visual — acción destructiva con el mismo peso que el resto
 "Borrar movimientos" tenía el mismo estilo que "Añadir extracto" o "Desde Google Sheets". Ahora usa un tono más apagado por defecto y solo se tiñe de rojo de aviso al pasar el ratón — sigue siendo accesible sin gritar "peligro" constantemente ni confundirse con la acción principal (morada).
 
+### 6. Información arquitectura — cabecera con demasiadas acciones de igual peso
+5 botones sueltos (Añadir extracto / Desde Google Sheets / Escritura Sheets / Añadir movimiento / Borrar movimientos), todos con el mismo peso visual, sin agrupar por frecuencia de uso ni propósito.
+**Arreglo**: dos menús desplegables reales (con `role="menu"`/`role="menuitem"`, `aria-haspopup`, `aria-expanded`, cierre con Escape y al hacer clic fuera):
+- **Importar ▾**: agrupa "Desde archivo (Excel/CSV)" y "Desde Google Sheets" — misma intención (traer datos), un solo punto de entrada.
+- **⚙ ▾**: agrupa "Escritura en Sheets" (configuración, uso puntual) y "Borrar movimientos" (destructivo, con el tono atenuado del hallazgo 5).
+
+De paso corregido un bug del propio menú antes de darlo por bueno: el desplegable de ajustes, al estar pegado al borde derecho, se abría alineado a la izquierda y se cortaba fuera de la pantalla — se abre ahora alineado a la derecha (`.dropdown.right`). En móvil, la cabecera pasa de 5 filas apiladas a 3, sin overflow horizontal (verificado con `scrollWidth === clientWidth`).
+
 ## Tests añadidos
 
-`tests.html` ahora incluye una batería de contraste WCAG automatizada (14 comprobaciones sobre los pares de color de cada tema) — si alguien cambia un color de la paleta en el futuro y baja de 4.5:1, los tests lo detectan solos en vez de necesitar otra ronda de capturas de pantalla. Total: **71/71 tests en verde** (57 de lógica + 14 de contraste).
+`tests.html` incluye una batería de contraste WCAG automatizada (14 comprobaciones sobre los pares de color de cada tema) — si alguien cambia un color de la paleta en el futuro y baja de 4.5:1, los tests lo detectan solos en vez de necesitar otra ronda de capturas de pantalla. Total: **78/78 tests en verde** (57 de lógica + 14 de contraste + 7 de licencia Pro añadidos en paralelo por otro colaborador).
 
 ## Pendiente — recomendado pero no aplicado en esta pasada
 
 No todo lo que encontré se ha tocado; esto es lo que dejo documentado para decidir con calma, no bugs silenciados:
 
-- **Demasiadas acciones de igual peso en la cabecera** (Añadir extracto / Desde Google Sheets / Escritura Sheets / Añadir movimiento / Borrar movimientos — 5 botones). Antes de monetizar, valdría la pena agrupar "Añadir extracto" + "Desde Google Sheets" bajo un único "Importar ▾", y mover "Escritura Sheets" (una acción de configuración, no de uso diario) a un menú de ajustes aparte. Es un cambio de componente interactivo (menú desplegable), no solo CSS — lo dejo para una pasada dedicada en vez de meterlo de prisa.
 - **Tamaño de objetivos táctiles**: los botones rondan 32-36px de alto; la recomendación de Apple/Material es 44-48px para dedos. Agrandar todos los botones de golpe es un cambio de densidad visual en todo el sistema, mejor decidirlo con la usuaria antes que aplicarlo a ciegas.
-- **Iconos de emoji** (🌙/☀️ para el tema, 🔗 para escritura en Sheets) mezclados con botones de solo texto — funciona, pero un set de iconos SVG consistente daría un acabado más "producto terminado" si el objetivo final es venderlo.
+- **Iconos de emoji** (🌙/☀️ para el tema, 🔗/📄/📊/🗑 en los menús) — funcionan y ya dan alguna pista visual extra dentro de los desplegables, pero un set de iconos SVG consistente daría un acabado más "producto terminado" si el objetivo final es venderlo.
 - **Affordance de edición poco visible**: el campo de concepto es editable (`contenteditable`) pero no hay ninguna pista visual (icono de lápiz, subrayado) hasta que pasas el ratón por encima — quien no lo sepa de antemano puede no descubrirlo nunca.
 
 ## Archivos tocados
 
-`index.html` (CSS y un atributo de clase), `tests.html` (14 tests nuevos). Sin cambios en `lib.js` — todo lo de esta pasada era visual/CSS, no lógica de negocio.
+`index.html` (CSS, HTML y JS de los desplegables), `tests.html` (14 tests de contraste, fusionados con los 7 de licencia Pro de `RintungEn1gma`). Sin cambios en `lib.js` en esta auditoría — todo era visual/interacción, no lógica de negocio.

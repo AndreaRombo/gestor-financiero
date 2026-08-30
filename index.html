@@ -59,8 +59,16 @@ button{font-family:inherit;cursor:pointer;border:none;transition:background .13s
 .btn.primary:hover{background:#BCA6FC;border-color:#BCA6FC}
 .btn.ghost{background:transparent}
 .btn.ghost:hover{background:var(--panel)}
-.btn.danger{color:var(--faint)}
-.btn.danger:hover{background:rgba(251,113,133,.1);border-color:var(--expense);color:var(--expense)}
+
+.dropdown{position:relative}
+.dropdown-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-width:calc(100vw - 40px);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:none;flex-direction:column;gap:1px;z-index:50}
+.dropdown.right .dropdown-menu{left:auto;right:0}
+.dropdown-menu.on{display:flex}
+.dropdown-menu button{width:100%;text-align:left;padding:9px 10px;border-radius:7px;background:transparent;font-size:12.5px;font-weight:500;color:var(--text)}
+.dropdown-menu button:hover{background:var(--raised)}
+.dropdown-menu button.danger{color:var(--faint)}
+.dropdown-menu button.danger:hover{background:rgba(251,113,133,.1);color:var(--expense)}
+.dropdown-menu hr{border:none;border-top:1px solid var(--lineSoft);margin:4px 2px}
 .btn.sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
 .btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .btn[disabled]{opacity:.55;cursor:default}
@@ -194,7 +202,8 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   header{gap:14px}
   .hwrap{width:100%}
   .hactions{width:100%}
-  .hactions .btn{flex:1 1 100%}
+  .hactions>.btn,.hactions>.dropdown{flex:1 1 100%}
+  .hactions .dropdown>.btn{width:100%}
   .hactions .savedot{flex:0 0 100%;justify-content:center;margin:0 0 2px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -213,11 +222,22 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
       <button class="btn ghost sm" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
       <div class="hactions" id="hactions" hidden>
         <span class="savedot" id="savedot"><i></i><span id="savetxt"></span></span>
-        <button class="btn" id="addBtn" onclick="pickFile()">Añadir extracto</button>
-        <button class="btn" id="driveBtn" onclick="importFromDrive()">Desde Google Sheets</button>
-        <button class="btn ghost sm" onclick="setupWriteUrl()" title="Configurar o cambiar la escritura hacia tu Google Sheet">🔗 Escritura Sheets</button>
+        <div class="dropdown" id="importDropdown">
+          <button class="btn" onclick="toggleDropdown('importDropdown')" aria-haspopup="true" aria-expanded="false">Importar ▾</button>
+          <div class="dropdown-menu" role="menu">
+            <button role="menuitem" id="addBtn" onclick="closeDropdowns();pickFile()">📄 Desde archivo (Excel/CSV)</button>
+            <button role="menuitem" id="driveBtn" onclick="closeDropdowns();importFromDrive()">📊 Desde Google Sheets</button>
+          </div>
+        </div>
         <button class="btn primary" onclick="openForm()">Añadir movimiento</button>
-        <button class="btn ghost danger" onclick="wipe()">Borrar movimientos</button>
+        <div class="dropdown right" id="settingsDropdown">
+          <button class="btn ghost sm" onclick="toggleDropdown('settingsDropdown')" aria-haspopup="true" aria-expanded="false" title="Más opciones">⚙ ▾</button>
+          <div class="dropdown-menu" role="menu">
+            <button role="menuitem" onclick="closeDropdowns();setupWriteUrl()">🔗 Escritura en Sheets</button>
+            <hr>
+            <button role="menuitem" class="danger" onclick="closeDropdowns();wipe()">🗑 Borrar movimientos</button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -1216,13 +1236,28 @@ function renderList(sc){
 }
 function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML;}
 
+/* ---------- dropdowns de cabecera ---------- */
+function closeDropdowns(){
+  document.querySelectorAll(".dropdown-menu.on").forEach(m=>m.classList.remove("on"));
+  document.querySelectorAll(".dropdown>.btn[aria-expanded]").forEach(b=>b.setAttribute("aria-expanded","false"));
+}
+function toggleDropdown(id){
+  const root=document.getElementById(id);
+  const menu=root.querySelector(".dropdown-menu");
+  const btn=root.querySelector(".btn");
+  const wasOpen=menu.classList.contains("on");
+  closeDropdowns();
+  if(!wasOpen){menu.classList.add("on");btn.setAttribute("aria-expanded","true");}
+}
+document.addEventListener("click",e=>{if(!e.target.closest(".dropdown"))closeDropdowns();});
+
 /* ---------- drag & drop ---------- */
 const dz=document.getElementById("drop");
 ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("over");}));
 ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("over");}));
 dz.addEventListener("drop",e=>onFile(e.dataTransfer.files[0]));
 dz.addEventListener("click",e=>{if(e.target===dz||e.target.tagName==="H2"||e.target.tagName==="P")pickFile();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();closeCatForm();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();closeCatForm();closeDropdowns();}});
 
 /* ---------- tema ---------- */
 const THEME_KEY="fin:theme";
