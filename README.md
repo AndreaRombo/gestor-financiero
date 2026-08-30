@@ -125,6 +125,10 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 - **Nunca se envían credenciales de Google** a ningún sitio: la lectura usa un enlace público de solo lectura, la escritura usa tu propio Apps Script autorizado por ti. No hay contraseñas ni tokens OAuth guardados en ningún sitio del código ni del repositorio.
 - Las URLs de Drive/Sheets que construye la app siempre las arma ella misma a partir de un ID validado por expresión regular (solo letras/números/guiones) — nunca hace fetch directo a una URL pegada por el usuario, así que no hay riesgo de que un enlace manipulado la mande a otro sitio.
 
+## Historial de cambios
+
+Ver [CHANGELOG.md](CHANGELOG.md).
+
 ## Limitaciones conocidas
 
 - La detección automática de todas las pestañas de Google Sheets depende de leer la página de edición pública y buscar un patrón dentro de su HTML interno; es una técnica no oficial que Google podría cambiar en el futuro. Si deja de funcionar, seguirá funcionando la importación de una sola pestaña (la del enlace pegado).
