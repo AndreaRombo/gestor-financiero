@@ -41,7 +41,9 @@ Botón "Desde Google Sheets" (en la pantalla inicial; en la cabecera está dentr
 
 ## Escribir cambios de vuelta en Google Sheets
 
-Cuando cambias la categoría o editas el concepto de un movimiento que vino de Google Sheets, la app puede guardar ese cambio también en la celda original de tu hoja — así la corrección persiste para la próxima importación, y la ve cualquiera que use la misma hoja compartida.
+Cuando cambias la categoría o editas el concepto de un movimiento que vino de Google Sheets, la app puede guardar ese cambio también en la celda original de tu hoja. Y si usas **"Añadir movimiento"** estando en una pestaña que vino de Sheets, ese movimiento nuevo se añade como fila nueva al final de esa misma pestaña de tu hoja — así persiste para la próxima importación, y lo ve cualquiera que use la misma hoja compartida (tu marido, por ejemplo).
+
+Esto solo aplica a pestañas que se importaron de Google Sheets. Un movimiento añadido a mano en una pestaña que viene de un Excel local, o creada con "Empezar a mano", se queda solo en tu navegador — no hay ninguna hoja a la que escribir.
 
 Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola vez desde tu cuenta (sin pantallas de "app no verificada"), y la app le manda peticiones sin que nadie tenga que iniciar sesión con Google desde el navegador.
 
@@ -66,11 +68,6 @@ Hay dos caminos para crear el script — usa el que te funcione:
        return ContentService.createTextOutput(JSON.stringify({error: "unauthorized"}))
          .setMimeType(ContentService.MimeType.JSON);
      }
-     var row = Number(body.row), col = Number(body.col);
-     if (!(row >= 2 && row <= 5000 && col >= 1 && col <= 40)) {
-       return ContentService.createTextOutput(JSON.stringify({error: "out of range"}))
-         .setMimeType(ContentService.MimeType.JSON);
-     }
      var ss = SpreadsheetApp.openById(SHEET_ID);
      var sheet = null;
      var sheets = ss.getSheets();
@@ -81,6 +78,38 @@ Hay dos caminos para crear el script — usa el que te funcione:
        return ContentService.createTextOutput(JSON.stringify({error: "sheet not found"}))
          .setMimeType(ContentService.MimeType.JSON);
      }
+
+     if (body.action === "appendRow") {
+       var values = body.values || {};
+       var maxCol = 0;
+       for (var key in values) {
+         var colNum = Number(key);
+         if (!(colNum >= 1 && colNum <= 40)) {
+           return ContentService.createTextOutput(JSON.stringify({error: "out of range"}))
+             .setMimeType(ContentService.MimeType.JSON);
+         }
+         if (colNum > maxCol) maxCol = colNum;
+       }
+       if (maxCol === 0) {
+         return ContentService.createTextOutput(JSON.stringify({error: "empty row"}))
+           .setMimeType(ContentService.MimeType.JSON);
+       }
+       var rowArray = [];
+       for (var c = 1; c <= maxCol; c++) {
+         var v = values[String(c)];
+         rowArray.push(v === undefined ? "" : String(v).slice(0, 500));
+       }
+       sheet.appendRow(rowArray);
+       return ContentService.createTextOutput(JSON.stringify({ok: true}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
+
+     // action "setCell" (comportamiento por defecto — editar una celda ya existente)
+     var row = Number(body.row), col = Number(body.col);
+     if (!(row >= 2 && row <= 5000 && col >= 1 && col <= 40)) {
+       return ContentService.createTextOutput(JSON.stringify({error: "out of range"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
      sheet.getRange(row, col).setValue(String(body.value).slice(0, 500));
      return ContentService.createTextOutput(JSON.stringify({ok: true}))
        .setMimeType(ContentService.MimeType.JSON);
@@ -88,6 +117,8 @@ Hay dos caminos para crear el script — usa el que te funcione:
    ```
 
    (Si usaste el camino normal desde **Extensiones → Apps Script**, también puedes dejar `SpreadsheetApp.getActiveSpreadsheet()` en vez de `openById` — ambas funcionan igual estando dentro de la hoja, pero `openById` funciona siempre, vengas por donde vengas.)
+
+   **Si ya tenías el script de antes desplegado** (solo con `action:"setCell"`): tienes que **sustituir el código completo por este de arriba** y volver a implementar una nueva versión (**Implementar → Gestionar implementaciones → editar → Nueva versión → Implementar**) para que "Añadir movimiento" también escriba en tu hoja — si no, seguirá funcionando el cambio de categoría/concepto pero no los movimientos nuevos.
 
 3. Guarda el proyecto (ponle un nombre, p. ej. "GestorFinancieroAPI").
 4. **Implementar → Nueva implementación** → tipo **Aplicación web**.
