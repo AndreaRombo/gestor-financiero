@@ -836,10 +836,12 @@ async function driveDiscoverTabs(id){
     return out;
   }catch(e){return [];}
 }
-function switchOrCreateBoardByName(name){
+function switchOrCreateBoardByTab(gid,name){
   syncBoard();
-  let b=boards.find(x=>x.name===name);
+  let b=gid?boards.find(x=>(x.rows||[]).some(r=>r.src&&r.src.gid===gid)):null;
+  if(!b)b=boards.find(x=>x.name===name);
   if(!b){b=blankBoard(name);boards.push(b);}
+  else if(name&&b.name!==name){b.name=name;}
   loadBoardData(b);
 }
 async function syncSheetTabs(link,silent){
@@ -856,7 +858,7 @@ async function syncSheetTabs(link,silent){
       const text=await res.text();
       if(/^\s*<(!DOCTYPE|html)/i.test(text))throw new Error("requiere iniciar sesión");
       const title=t.title||"Google Sheets";
-      switchOrCreateBoardByName(title);
+      switchOrCreateBoardByTab(t.gid,title);
       const ctx=tabDateContext(title);
       added+=ingestMatrix(csvToMatrix(text),title,ctx.year,true,{gid:t.gid},silent);
       okTabs++;
