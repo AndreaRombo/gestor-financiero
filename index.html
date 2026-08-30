@@ -787,7 +787,7 @@ function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
     }
     const row={id:"r"+(uid++),fecha,concepto,importe,categoria,manual:false,añadido:false};
     if(srcMeta){
-      row.src={gid:srcMeta.gid,row:i+1,catCol:cols.cat>-1?cols.cat+1:0,fjCol:cols.fj>-1?cols.fj+1:0,cCol:cols.c+1};
+      row.src={gid:srcMeta.gid,row:i+1,catCol:cols.cat>-1?cols.cat+1:0,fjCol:cols.fj>-1?cols.fj+1:0,cCol:cols.c+1,fCol:cols.f>-1?cols.f+1:0,aCol:cols.a>-1?cols.a+1:0};
     }
     const s=sig(row);
     if(seen.has(s)){dupes++;continue;}
@@ -948,6 +948,41 @@ function reportWriteResult(result){
   if(result.ok)banner("Guardado también en tu Google Sheet.","info",2500);
   else banner("No se pudo confirmar el guardado en Google Sheets"+(result.reason?": "+result.reason:"")+". Revisa ⚙ → Escritura en Sheets.","err",11000);
 }
+function findSheetLink(){
+  const template=rows.find(r=>r.src);
+  return template?template.src:null;
+}
+async function writeAppendRow(gid,values){
+  const url=localStorage.getItem("fin:writeurl");
+  const secret=localStorage.getItem("fin:writesecret");
+  if(!url)return null;
+  const body=JSON.stringify({action:"appendRow",gid,secret,values});
+  try{
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    let data=null;
+    try{data=await res.json();}catch(e){}
+    if(data&&data.ok===true)return {ok:true};
+    return {ok:false,reason:(data&&data.error)||("respuesta HTTP "+res.status)};
+  }catch(e){
+    try{
+      await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    }catch(e2){}
+    return {ok:false,reason:"no se pudo confirmar (posible bloqueo CORS del navegador)"};
+  }
+}
+async function appendRowToSheet(row){
+  const link=findSheetLink();
+  if(!link)return null;
+  const c=CATS[row.categoria];
+  const values={};
+  if(link.fCol&&row.fecha)values[link.fCol]=row.fecha.toLocaleDateString("es-ES");
+  if(link.cCol)values[link.cCol]=row.concepto;
+  if(link.aCol)values[link.aCol]=row.importe;
+  if(link.catCol&&c)values[link.catCol]=c.label;
+  if(link.fjCol&&c&&c.tipo)values[link.fjCol]=c.tipo==="fijo"?"Fijo":"Variable";
+  if(!Object.keys(values).length)return null;
+  return writeAppendRow(link.gid,values);
+}
 
 /* ---------- ejemplo ---------- */
 function loadSample(){
@@ -1017,8 +1052,10 @@ function addManual(){
   if(!concepto){banner("Falta el concepto.","err");return;}
   if(isNaN(importe)||importe===0){banner("El importe no es válido.","err");return;}
   importe=tipo==="ingreso"?Math.abs(importe):-Math.abs(importe);
-  rows.push({id:"r"+(uid++),fecha,concepto,importe,categoria,manual:true,añadido:true});
+  const row={id:"r"+(uid++),fecha,concepto,importe,categoria,manual:true,añadido:true};
+  rows.push(row);
   save();closeForm();show();
+  appendRowToSheet(row).then(reportWriteResult);
 }
 
 /* ---------- categorías ---------- */
