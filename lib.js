@@ -137,14 +137,3 @@ function tabDateContext(title){
   }
   return {month,year:year||(month?(month>=9?2025:2026):2026)};
 }
-function monthKey(d,cutoff){
-  if(!d)return "sin-fecha";
-  let y=d.getFullYear(),m=d.getMonth();
-  if(cutoff>1&&d.getDate()>=cutoff){m++;if(m>11){m=0;y++;}}
-  return y+"-"+String(m+1).padStart(2,"0");
-}
-function monthLabel(k){
-  if(k==="sin-fecha")return "s/f";
-  const [y,m]=k.split("-");
-  return MES[+m-1]+" "+y.slice(2);
-}

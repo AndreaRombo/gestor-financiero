@@ -10,7 +10,7 @@ Aplicación web de finanzas personales: importa extractos bancarios y hojas de G
 - **Importa directamente desde Google Sheets** (ver más abajo), leyendo todas las pestañas de la hoja de una vez.
 - **Categoriza automáticamente** los movimientos por palabras clave (Mercadona → Supermercado, Netflix → Suscripciones, etc.), y permite crear categorías propias marcadas como **Gasto fijo** o **Gasto variable**.
 - **Pestañas independientes** (como las hojas de un Excel): cada pestaña de la app es un tracker completo con sus propios movimientos, categorías, meses y gráficas. Sirve para separar, por ejemplo, "Movimientos" del banco de "Reformas" o "Gastos anuales".
-- **Corte de mes personalizable**: si cobras un día distinto al 1 (por ejemplo el 28), cada pestaña puede agrupar los meses según ese ciclo en vez del mes natural.
+- **Panel Fijo vs Variable**: totales y % del gasto del periodo agrupados por el `tipo` de cada categoría (Fijo/Variable), más un bloque "Sin clasificar" si hay categorías sin ese dato.
 - **Edición directa**: el concepto de cada movimiento se edita haciendo clic encima; la categoría se cambia con un desplegable.
 - **Selección múltiple**: marca varios movimientos y cámbiales la categoría o muévelos a otra pestaña de golpe.
 - **Modo claro/oscuro.**
@@ -99,7 +99,7 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 
 ## Estructura de datos
 
-- **Pestaña (board)**: `{ id, name, fileName, rows, customCats, month, active, sort, cutoff }`
+- **Pestaña (board)**: `{ id, name, fileName, rows, customCats, active, sort }`
 - **Movimiento (row)**: `{ id, fecha, concepto, importe, categoria, manual, añadido, src? }` — `importe` negativo es gasto, positivo es ingreso. `src` (`{ gid, row, catCol, fjCol, cCol }`) solo existe si el movimiento vino de Google Sheets, y es lo que permite escribir cambios de vuelta a la celda original.
 - **Categoría**: built-in (`BASE_CATS`) + personalizadas por pestaña (`customCats`), cada una con `{ label, color, tipo }` donde `tipo` es `"fijo"` o `"variable"`.
 

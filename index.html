@@ -83,17 +83,13 @@ button{font-family:inherit;cursor:pointer;border:none;transition:background .13s
 .tabadd{flex:0 0 auto;align-self:center;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:16px}
 .tabadd:hover{color:var(--text);border-color:var(--lineHover)}
 
-.months{display:flex;gap:9px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
-.months::-webkit-scrollbar{height:5px}
-.months::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-.mcell{flex:0 0 auto;width:70px;background:transparent;border:1px solid transparent;border-radius:11px;padding:9px 7px;text-align:center}
-.mcell:hover{background:var(--raised)}
-.mcell.on{border-color:var(--brand);background:var(--raised)}
-.mbars{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:58px;margin-bottom:8px}
-.mbar{width:11px;border-radius:3px 3px 0 0;transition:height .65s cubic-bezier(.22,.9,.28,1);min-height:2px}
-.mlabel{font-size:10.5px;color:var(--muted);font-weight:500;text-transform:capitalize}
-.mcell.on .mlabel{color:var(--text)}
-.mnet{font-size:10px;margin-top:2px}
+.fvgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.fvcard{background:var(--raised);border:1px solid var(--lineSoft);border-radius:14px;padding:15px}
+.fvhead{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.fvdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.fvlabel{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.fvamt{font-size:19px;font-weight:600}
+.fvpct{font-size:11px;color:var(--faint);margin-top:3px}
 
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .metric{background:var(--panel);border:1px solid var(--lineSoft);border-radius:14px;padding:17px}
@@ -188,6 +184,8 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   .metrics{grid-template-columns:1fr;gap:9px}
   .metric{padding:14px}
   .mkval{font-size:20px}
+  .fvgrid{grid-template-columns:1fr;gap:9px}
+  .fvcard{padding:12px}
   .tblwrap{display:none}
   .cards{display:flex}
   header{gap:14px}
@@ -196,7 +194,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   .hactions .btn{flex:1}
 }
 @media (prefers-reduced-motion:reduce){
-  .bfill,.mbar,.ribbon span{transition:none}
+  .bfill,.ribbon span{transition:none}
 }
 </style>
 </head>
@@ -238,18 +236,12 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   <section id="app" hidden>
     <div class="tabs" id="tabs"></div>
 
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div class="ptitle" style="margin-bottom:0">Mes a mes</div>
-        <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--faint)">
-          Mi mes empieza el día
-          <input id="fCutoff" type="number" min="1" max="31" style="width:54px;padding:6px 8px;background:var(--base);border:1px solid var(--line);border-radius:7px;color:var(--text);font-size:12px;font-family:inherit;text-align:center" onchange="setCutoff(this.value)">
-        </label>
-      </div>
-      <div class="months" id="months"></div>
-    </div>
-
     <div class="metrics" id="metrics"></div>
+
+    <div class="panel">
+      <div class="ptitle">Fijo vs Variable</div>
+      <div class="fvgrid" id="fvGrid"></div>
+    </div>
 
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -348,18 +340,18 @@ function slugCat(s){
 }
 /* strip, eur, MES, KEYS, parseAmount, serialToDate, parseDate, categorize: ver lib.js */
 
-let rows=[],fileName="",month="all",active=new Set(),selected=new Set(),sort={key:"fecha",dir:"desc"},cutoff=1,undoBuf=null,undoTimer=null,uid=0,catTouched=false,tipo="gasto",catTipoSel="variable";
+let rows=[],fileName="",active=new Set(),selected=new Set(),sort={key:"fecha",dir:"desc"},undoBuf=null,undoTimer=null,uid=0,catTouched=false,tipo="gasto",catTipoSel="variable";
 let boards=[],currentBoardId=null;
 const STORE="fin:v2";
 
 /* ---------- pestañas ---------- */
 function blankBoard(name){
-  return {id:"b"+(uid++),name,fileName:"",rows:[],customCats:{},month:"all",active:new Set(),sort:{key:"fecha",dir:"desc"},cutoff:1};
+  return {id:"b"+(uid++),name,fileName:"",rows:[],customCats:{},active:new Set(),sort:{key:"fecha",dir:"desc"}};
 }
 function syncBoard(){
   const b=boards.find(x=>x.id===currentBoardId);
   if(!b)return;
-  b.fileName=fileName;b.rows=rows;b.customCats=customCats;b.month=month;b.active=active;b.sort=sort;b.cutoff=cutoff;
+  b.fileName=fileName;b.rows=rows;b.customCats=customCats;b.active=active;b.sort=sort;
 }
 function loadBoardData(b){
   currentBoardId=b.id;
@@ -367,10 +359,8 @@ function loadBoardData(b){
   rows=b.rows||[];
   customCats=b.customCats||{};
   rebuildCats();
-  month=b.month||"all";
   active=b.active instanceof Set?b.active:new Set(b.active||[]);
   sort=b.sort||{key:"fecha",dir:"desc"};
-  cutoff=b.cutoff||1;
 }
 function ensureBoard(){
   if(currentBoardId&&boards.some(b=>b.id===currentBoardId))return;
@@ -444,7 +434,7 @@ function save(){
       boards:boards.map(b=>({
         id:b.id,name:b.name,fileName:b.fileName,
         rows:b.rows.map(r=>({...r,fecha:r.fecha?r.fecha.toISOString():null})),
-        customCats:b.customCats,month:b.month,active:[...b.active],sort:b.sort,cutoff:b.cutoff
+        customCats:b.customCats,active:[...b.active],sort:b.sort
       }))
     }));
     setTimeout(()=>setSave("ok"),180);
@@ -458,8 +448,8 @@ function load(){
       boards=d.boards.map(b=>({
         id:b.id,name:b.name,fileName:b.fileName||"",
         rows:(b.rows||[]).map(r=>({...r,id:"r"+(uid++),fecha:r.fecha?new Date(r.fecha):null})),
-        customCats:b.customCats||{},month:b.month||"all",
-        active:new Set(b.active||[]),sort:b.sort||{key:"fecha",dir:"desc"},cutoff:b.cutoff||1
+        customCats:b.customCats||{},
+        active:new Set(b.active||[]),sort:b.sort||{key:"fecha",dir:"desc"}
       }));
       currentBoardId=(d.currentBoardId&&boards.some(b=>b.id===d.currentBoardId))?d.currentBoardId:(boards[0]&&boards[0].id);
     }else{
@@ -1001,28 +991,19 @@ function show(){
   document.getElementById("sub").textContent=fileName?fileName+" · "+rows.length+" movimientos":rows.length+" movimientos";
   render();
 }
-/* monthKey, monthLabel: ver lib.js (monthKey ahora recibe el cutoff como argumento) */
-function setCutoff(v){
-  const n=parseInt(v,10);
-  cutoff=(isFinite(n)&&n>=1&&n<=31)?n:1;
-  save();render();
-}
-function scopedRows(){return month==="all"?rows:rows.filter(r=>monthKey(r.fecha,cutoff)===month);}
-
 function render(){
   renderTabs();
-  document.getElementById("fCutoff").value=cutoff;
   if(!rows.length){renderEmpty();return;}
-  renderMonths();
-  const sc=scopedRows();
+  const sc=rows;
   renderMetrics(sc);
+  renderFV(sc);
   renderBreakdown(sc);
   renderChips(sc);
   renderList(sc);
 }
 function renderEmpty(){
-  document.getElementById("months").innerHTML="";
   document.getElementById("metrics").innerHTML="";
+  document.getElementById("fvGrid").innerHTML="";
   document.getElementById("ribbon").innerHTML="";
   document.getElementById("breakdown").innerHTML='<div class="empty">Todavía no hay movimientos en esta pestaña.</div>';
   document.getElementById("chips").innerHTML="";
@@ -1033,27 +1014,28 @@ function renderEmpty(){
   document.getElementById("cards").innerHTML=msg;
 }
 
-function renderMonths(){
-  const map=new Map();
-  rows.forEach(r=>{
-    const k=monthKey(r.fecha,cutoff);
-    if(!map.has(k))map.set(k,{ing:0,gas:0});
-    const o=map.get(k);
-    r.importe>=0?o.ing+=r.importe:o.gas+=-r.importe;
+function renderFV(sc){
+  let fijo=0,variable=0,sinClasificar=0;
+  sc.forEach(r=>{
+    if(r.importe>=0)return;
+    const c=CATS[r.categoria];
+    const importe=-r.importe;
+    if(c&&c.tipo==="fijo")fijo+=importe;
+    else if(c&&c.tipo==="variable")variable+=importe;
+    else sinClasificar+=importe;
   });
-  const keys=[...map.keys()].sort((a,b)=>a==="sin-fecha"?1:b==="sin-fecha"?-1:a.localeCompare(b));
-  const max=Math.max(1,...[...map.values()].flatMap(o=>[o.ing,o.gas]));
-  let html='<button class="mcell '+(month==="all"?"on":"")+'" onclick="month=\'all\';render()"><div class="mbars"><div class="mbar" style="height:100%;background:var(--line)"></div></div><div class="mlabel">Todo</div></button>';
-  html+=keys.map(k=>{
-    const o=map.get(k),net=o.ing-o.gas;
-    return '<button class="mcell '+(month===k?"on":"")+'" onclick="month=\''+k+'\';render()">'+
-      '<div class="mbars">'+
-      '<div class="mbar" style="height:'+(o.ing/max*100)+'%;background:var(--income)"></div>'+
-      '<div class="mbar" style="height:'+(o.gas/max*100)+'%;background:var(--expense)"></div>'+
-      '</div><div class="mlabel">'+monthLabel(k)+'</div>'+
-      '<div class="mnet num" style="color:'+(net>=0?"var(--income)":"var(--expense)")+'">'+(net>=0?"+":"")+Math.round(net)+'</div></button>';
-  }).join("");
-  document.getElementById("months").innerHTML=html;
+  const total=fijo+variable+sinClasificar||1;
+  const cards=[
+    {label:"Fijo",amt:fijo,color:"#38BDF8"},
+    {label:"Variable",amt:variable,color:"#FB923C"}
+  ];
+  if(sinClasificar>0)cards.push({label:"Sin clasificar",amt:sinClasificar,color:"var(--faint)"});
+  document.getElementById("fvGrid").innerHTML=cards.map(c=>
+    '<div class="fvcard"><div class="fvhead"><span class="fvdot" style="background:'+c.color+'"></span>'+
+    '<span class="fvlabel">'+c.label+'</span></div>'+
+    '<div class="fvamt num">'+eur(c.amt)+'</div>'+
+    '<div class="fvpct num">'+Math.round(c.amt/total*100)+'% del gasto</div></div>'
+  ).join("");
 }
 
 function renderMetrics(sc){
@@ -1127,7 +1109,7 @@ function toggleSelect(id,checked){
   render();
 }
 function toggleSelectAll(checked){
-  filterRows(scopedRows()).forEach(r=>checked?selected.add(r.id):selected.delete(r.id));
+  filterRows(rows).forEach(r=>checked?selected.add(r.id):selected.delete(r.id));
   render();
 }
 function clearSelection(){selected.clear();render();}

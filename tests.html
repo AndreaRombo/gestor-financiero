@@ -108,12 +108,6 @@ assertEqual(tabDateContext("Inversiones"),{month:null,year:2026},"tabDateContext
 assertEqual(tabDateContext("Anual  Ingresos"),{month:null,year:2026},"tabDateContext 'Anual Ingresos' sin mes reconocible");
 assertEqual(tabDateContext("Diciembre 2025"),{month:12,year:2025},"tabDateContext diciembre 2025");
 
-/* ---------- monthKey (agrupacion por mes / dia de corte) ---------- */
-assertEqual(monthKey(new Date(2026,5,15),1),"2026-06","monthKey con cutoff=1 usa el mes de calendario");
-assertEqual(monthKey(new Date(2026,5,28),28),"2026-07","monthKey cutoff=28: el dia 28 ya cuenta como mes siguiente");
-assertEqual(monthKey(new Date(2026,5,27),28),"2026-06","monthKey cutoff=28: el dia 27 sigue en el mes actual");
-assertEqual(monthKey(new Date(2025,11,28),28),"2026-01","monthKey cutoff=28 en diciembre pasa de año");
-assertEqual(monthKey(null,1),"sin-fecha","monthKey sin fecha da 'sin-fecha'");
 
 /* ---------- guessColumns (deteccion posicional sin cabecera) ---------- */
 (function(){
