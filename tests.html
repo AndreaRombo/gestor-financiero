@@ -137,6 +137,29 @@ assertEqual(guessColumns([["solo","texto","sin","numeros","ni","fechas"]],2026),
   assertTrue(sig(r3).startsWith("|"),"sig con fecha null no rompe, deja el campo vacio");
 })();
 
+/* ---------- licencia Pro (getLicenseState/setLicenseState/clearLicenseState/isPro) ---------- */
+(function(){
+  const backup=localStorage.getItem("fin:license");
+  try{
+    clearLicenseState();
+    assertNull(getLicenseState(),"getLicenseState sin nada guardado da null");
+    assertTrue(!isPro(),"isPro() es false sin licencia guardada");
+
+    setLicenseState({key:"ABC-123",valid:true,checkedAt:1,uses:1});
+    assertEqual(getLicenseState().key,"ABC-123","setLicenseState/getLicenseState guardan y leen la key");
+    assertTrue(isPro(),"isPro() es true con valid:true y key presente");
+
+    setLicenseState({key:"ABC-123",valid:false});
+    assertTrue(!isPro(),"isPro() es false si valid:false aunque haya key");
+
+    clearLicenseState();
+    assertNull(getLicenseState(),"clearLicenseState borra el estado guardado");
+    assertTrue(!isPro(),"isPro() vuelve a false tras clearLicenseState");
+  } finally {
+    if(backup===null) localStorage.removeItem("fin:license"); else localStorage.setItem("fin:license",backup);
+  }
+})();
+
 document.getElementById("out").innerHTML=lines.join("");
 document.getElementById("summary").innerHTML=
   (fail===0?'<span class="pass">TODO OK — '+pass+' tests correctos</span>':'<span class="fail">'+fail+' FALLOS de '+(pass+fail)+' tests</span>');
