@@ -1,2 +1,4 @@
-# Configuración local de Claude Code (skills, notas de estrategia) — no es parte de la app pública
-.claude/
+# Configuración local de Claude Code — no es parte de la app pública.
+# Las skills sí se comparten (.claude/skills/) para que todo el equipo use el mismo flujo de trabajo.
+.claude/*
+!.claude/skills/
