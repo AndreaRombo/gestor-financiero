@@ -32,7 +32,7 @@ Todo vive en `localStorage` del navegador, bajo tres claves con el prefijo `fin:
 - **Movimiento / row**: `{ id, fecha, concepto, importe, categoria, manual, añadido, src? }`. `importe` negativo = gasto, positivo = ingreso. `src` (`{ gid, row, catCol, fjCol, cCol }`) solo existe si la fila vino de una hoja de Google Sheets importada, y es lo que permite escribir cambios de vuelta a la celda original.
 - **Categoría**: `BASE_CATS` (built-in, en `index.html`) + `customCats` por pestaña, cada una `{ label, color, tipo }` donde `tipo` es `"fijo"` o `"variable"`.
 
-El patrón de estado en tiempo de ejecución (`rows`, `boards`, `currentBoardId` como variables globales, sincronizadas a/desde el board activo con `syncBoard()`/`loadBoardData()` en cada cambio de pestaña) es manual pero deliberado: no hay framework de por medio, y reescribirlo a algo más "formal" (store centralizado, etc.) no está justificado sin un bug concreto que lo motive — ver decisión documentada en `docs/sdd/plan.md` del pase de mantenimiento del 2026-08-30.
+El patrón de estado en tiempo de ejecución (`rows`, `boards`, `currentBoardId` como variables globales, sincronizadas a/desde el board activo con `syncBoard()`/`loadBoardData()` en cada cambio de pestaña) es manual pero deliberado: no hay framework de por medio, y reescribirlo a algo más "formal" (store centralizado, etc.) no está justificado sin un bug concreto que lo motive — ver decisión documentada en [`docs/sdd/spec-1-mantenimiento-refactor-tests.md`](sdd/spec-1-mantenimiento-refactor-tests.md).
 
 ## Importación de archivos
 

@@ -10,7 +10,7 @@
 - **Tests:** `tests.html` — ábrelo en el navegador, no hace falta servidor ni build. No hay suite en Python/Playwright en este repo.
 - **Control de versiones:** Git + GitHub, rama `main` protegida por Pull Request (ver README, sección "Desarrollo / cómo contribuir").
 - **Documentación:** `README.md` (qué hace la app y cómo usarla/contribuir) + `docs/TECHNICAL.md` (arquitectura, decisiones técnicas, estructura de datos) + `CHANGELOG.md` (historial) + `UX_AUDIT.md` (hallazgos de diseño/accesibilidad) + `docs/sdd/` (specs/planes aprobados de la metodología SDD).
-- **Metodología SDD:** ver la skill `.claude/skills/sdd/SKILL.md` para el flujo completo (cuándo definir spec/plan técnico antes de programar, dimensionamiento de specs, reglas de oro). Este archivo se centra en el checklist de cierre y las reglas críticas específicas de este repo.
+- **Metodología SDD:** ver la skill `.claude/skills/sdd/SKILL.md` para el flujo completo (cuándo definir spec/plan técnico antes de programar, dimensionamiento de specs, reglas de oro) y `.claude/skills/aidev-best-practices/SKILL.md` para prompts efectivos, señales de alerta con el agente, y checklist de sesión. Este archivo se centra en el checklist de cierre y las reglas críticas específicas de este repo.
 
 ---
 

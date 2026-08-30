@@ -1,4 +1,4 @@
-# Plan: pase de mantenimiento — dedup write-back, fix busy(), tests de categorize(), eliminar código muerto de licencia Pro
+# Spec 1: pase de mantenimiento — dedup write-back, fix busy(), tests de categorize(), eliminar código muerto de licencia Pro
 
 > Copiado desde el plan aprobado en modo Plan de Claude Code (que se guarda localmente en la máquina de cada persona, no en el repo) para que quede visible en el historial del equipo. Ejecutado en la PR #5.
 
