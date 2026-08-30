@@ -24,8 +24,9 @@ Aplicación web de finanzas personales: importa extractos bancarios y hojas de G
 
 No hay servidor propio, ni base de datos, ni backend de ningún tipo. Los datos (movimientos, categorías, pestañas) se guardan en el **`localStorage` del navegador**. Esto tiene dos consecuencias importantes:
 
-- **Los datos no se sincronizan entre personas ni entre dispositivos.** Cada persona que abre la app en su propio navegador tiene su propia copia, vacía al principio. Si tu marido abre la misma URL en su móvil, no verá tus movimientos — tendría que importar sus propios datos ahí.
-- **Nadie más puede ver esos datos**: no salen del navegador salvo cuando tú decides leer una hoja de Google Sheets que hayas compartido por enlace. No hay copia de seguridad automática — si borras el historial del navegador o cambias de ordenador, pierdes lo guardado (puedes volver a importar el extracto o la hoja cuando quieras).
+- **Los datos no se sincronizan entre personas ni entre dispositivos por sí solos.** Cada persona que abre la app en su propio navegador tiene su propia copia, vacía al principio. Si tu marido abre la misma URL en su móvil sin más, no verá tus movimientos — tendría que importar sus propios datos ahí.
+- **Salvo que conectéis los dos la misma hoja de Google Sheets** (ver "Importar desde Google Sheets" y "Usar la misma hoja en varios dispositivos" más abajo): en ese caso la hoja es la fuente compartida y la app se sincroniza sola con ella cada vez que se abre, así los dos veis lo mismo sin duplicar trabajo.
+- **Nadie más puede ver esos datos**: no salen del navegador salvo cuando lees o escribes en una hoja de Google Sheets que hayas compartido por enlace (algo que puede pasar automáticamente al abrir la app, si ya la conectaste — no solo cuando pulsas un botón). No hay copia de seguridad automática aparte de eso — si borras el historial del navegador o cambias de ordenador sin haber conectado una hoja, pierdes lo guardado.
 
 Cómo está construido por dentro (arquitectura, estructura de datos, parseo de archivos, seguridad): ver [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
@@ -133,6 +134,18 @@ A partir de ahí, cambiar una categoría en la app también la cambia en la hoja
 Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue funcionando igual, solo que los cambios se quedan solo en tu navegador.
 
 **Si cambias una categoría y no ves confirmación, o ves un aviso rojo de error**: la app ahora te dice explícitamente si la escritura en Sheets falló y por qué (antes fallaba en silencio). La causa más habitual es haber editado el secreto en el script (paso 7) sin volver a **Implementar → Gestionar implementaciones → editar → Nueva versión → Implementar** — hasta que no repites ese último paso, la versión publicada del script sigue teniendo el secreto antiguo y rechaza todo con "unauthorized".
+
+## Usar la misma hoja en varios dispositivos (tú y tu marido, móvil y ordenador)
+
+Con lo de arriba configurado (hoja conectada + escritura activada), la app puede quedar configurada igual en cualquier dispositivo de un solo golpe, sin pegar enlaces ni códigos a mano cada vez:
+
+1. En el dispositivo donde ya lo tengas todo configurado, abre **⚙ ▾ → "🔗 Escritura en Sheets"** y pulsa Guardar (si ya tenías la URL puesta, no pasa nada por guardarla otra vez). En la pantalla del secreto verás un campo nuevo, **"Enlace para configurar otro dispositivo"**, con un botón Copiar.
+2. Manda ese enlace por un canal privado (WhatsApp, Telegram, un mensaje directo — **nunca por un grupo abierto ni lo publiques**, lleva tu código secreto dentro) a quien vaya a usar la app, o ábrelo tú misma en tu móvil.
+3. Al abrirlo, la app queda conectada a la misma hoja y con la misma escritura activada automáticamente — no hay que pegar nada. La URL se limpia sola justo después (el secreto no se queda visible en la barra de direcciones).
+
+Una vez conectada, **la app se sincroniza sola con la hoja cada vez que se abre**: no hace falta pulsar "Importar desde Sheets" para ver lo que ha añadido la otra persona — si hay movimientos nuevos, aparece un aviso breve; si no hay ninguno, no ves nada (para no ser pesada). Si no hay conexión en ese momento (por ejemplo, en el móvil sin cobertura), la app sigue funcionando con lo que ya tenía guardado y no te interrumpe con ningún error.
+
+**Lo que todavía no se sincroniza solo entre dispositivos**: si editas el importe o la fecha de un movimiento ya existente, o si borras uno, ese cambio se queda solo en el dispositivo donde lo hiciste — no se refleja en la hoja ni en el resto de dispositivos. Cambiar la categoría o el concepto, y añadir movimientos nuevos, sí se sincroniza (ver más arriba).
 
 ## Desarrollo / cómo contribuir
 

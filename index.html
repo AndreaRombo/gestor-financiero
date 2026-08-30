@@ -353,6 +353,14 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
           <button class="btn sm" onclick="copyWriteSecret()" id="copySecretBtn">Copiar</button>
         </div>
       </div>
+      <div class="field" style="margin-top:18px;border-top:1px solid var(--line);padding-top:16px">
+        <label>Enlace para configurar otro dispositivo (móvil, tu marido…)</label>
+        <p style="color:var(--muted);font-size:12px;margin:2px 0 8px;line-height:1.5">Ábrelo una vez en el otro dispositivo y queda conectado a esta misma hoja, sin pegar nada a mano. <strong>Lleva tu código secreto dentro</strong> — compártelo solo por un canal privado (WhatsApp, Telegram…), nunca lo publiques ni lo mandes por un grupo abierto.</p>
+        <div style="display:flex;gap:8px">
+          <input id="fShareLink" type="text" readonly style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px">
+          <button class="btn sm" onclick="copyShareLink()" id="copyShareBtn">Copiar</button>
+        </div>
+      </div>
       <div class="mfoot">
         <button class="btn primary" onclick="closeWriteModal()" style="flex:1;justify-content:center">Listo</button>
       </div>
@@ -720,7 +728,7 @@ function onFile(f){
   }
 }
 /* sig, categorySlug, guessColumns: ver lib.js */
-function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
+function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta,silent){
   ensureBoard();
   if(!matrix||matrix.length<2)throw new Error("El archivo parece vacío.");
   let hi=-1,cols=null;
@@ -795,12 +803,28 @@ function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
   }
   if(!added&&!dupes)throw new Error("No he podido leer ningún movimiento válido.");
   fileName=name;save();
-  banner(added+" movimientos añadidos"+(dupes?" · "+dupes+" duplicados omitidos":""));
+  if(!silent)banner(added+" movimientos añadidos"+(dupes?" · "+dupes+" duplicados omitidos":""));
   show();
+  return added;
 }
 
 /* ---------- Google Sheets (enlace compartido) ---------- */
 /* extractSheetInfo, tabDateContext: ver lib.js */
+function applyConfigLink(){
+  const m=location.hash.match(/[#&]cfg=([^&]+)/);
+  if(!m)return;
+  try{
+    const json=decodeURIComponent(escape(atob(m[1])));
+    const cfg=JSON.parse(json);
+    if(cfg.s)localStorage.setItem("fin:sheetlink",cfg.s);
+    if(cfg.w)localStorage.setItem("fin:writeurl",cfg.w);
+    if(cfg.k)localStorage.setItem("fin:writesecret",cfg.k);
+    history.replaceState(null,"",location.pathname+location.search);
+    banner("Configuración de Google Sheets guardada en este dispositivo.","info",5000);
+  }catch(e){
+    banner("El enlace de configuración no es válido.","err",8000);
+  }
+}
 async function driveDiscoverTabs(id){
   try{
     const res=await fetch("https://docs.google.com/spreadsheets/d/"+id+"/edit");
@@ -817,6 +841,30 @@ function switchOrCreateBoardByName(name){
   let b=boards.find(x=>x.name===name);
   if(!b){b=blankBoard(name);boards.push(b);}
   loadBoardData(b);
+}
+async function syncSheetTabs(link,silent){
+  const info=extractSheetInfo(link);
+  if(!info)return {okTabs:0,failTabs:[],added:0,invalid:true};
+  const discovered=await driveDiscoverTabs(info.id);
+  const targets=discovered.length?discovered:[{gid:info.gid,title:null}];
+  let okTabs=0,added=0;const failTabs=[];
+  for(const t of targets){
+    try{
+      const url="https://docs.google.com/spreadsheets/d/"+info.id+"/gviz/tq?tqx=out:csv&gid="+t.gid;
+      const res=await fetch(url);
+      if(!res.ok)throw new Error("no accesible");
+      const text=await res.text();
+      if(/^\s*<(!DOCTYPE|html)/i.test(text))throw new Error("requiere iniciar sesión");
+      const title=t.title||"Google Sheets";
+      switchOrCreateBoardByName(title);
+      const ctx=tabDateContext(title);
+      added+=ingestMatrix(csvToMatrix(text),title,ctx.year,true,{gid:t.gid},silent);
+      okTabs++;
+    }catch(err){
+      failTabs.push(t.title||("gid "+t.gid));
+    }
+  }
+  return {okTabs,failTabs,added};
 }
 async function importFromDrive(){
   if(location.protocol==="file:"){
@@ -836,25 +884,7 @@ async function importFromDrive(){
   if(!info){banner("Ese enlace no parece una hoja de Google Sheets válida.","err");return;}
   busy(true,"Leyendo Google Sheets…");
   try{
-    const discovered=await driveDiscoverTabs(info.id);
-    const targets=discovered.length?discovered:[{gid:info.gid,title:null}];
-    let okTabs=0;const failTabs=[];
-    for(const t of targets){
-      try{
-        const url="https://docs.google.com/spreadsheets/d/"+info.id+"/gviz/tq?tqx=out:csv&gid="+t.gid;
-        const res=await fetch(url);
-        if(!res.ok)throw new Error("no accesible");
-        const text=await res.text();
-        if(/^\s*<(!DOCTYPE|html)/i.test(text))throw new Error("requiere iniciar sesión");
-        const title=t.title||"Google Sheets";
-        switchOrCreateBoardByName(title);
-        const ctx=tabDateContext(title);
-        ingestMatrix(csvToMatrix(text),title,ctx.year,true,{gid:t.gid});
-        okTabs++;
-      }catch(err){
-        failTabs.push(t.title||("gid "+t.gid));
-      }
-    }
+    const {okTabs,failTabs}=await syncSheetTabs(link,false);
     localStorage.setItem("fin:sheetlink",link);
     if(okTabs)banner("Importadas "+okTabs+" pestaña"+(okTabs===1?"":"s")+" desde Google Sheets"+(failTabs.length?" · no se pudo leer: "+failTabs.join(", "):""),failTabs.length?"err":"info",failTabs.length?11000:4500);
     else banner('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".',"err",9000);
@@ -863,6 +893,23 @@ async function importFromDrive(){
     banner(err.message||"No se pudo leer la hoja de Google Sheets.","err",9000);
   }finally{
     busy(false);
+  }
+}
+async function autoSyncOnOpen(){
+  if(location.protocol==="file:")return;
+  const link=localStorage.getItem("fin:sheetlink");
+  if(!link)return;
+  const originalBoardId=currentBoardId;
+  try{
+    const {okTabs,added}=await syncSheetTabs(link,true);
+    if(originalBoardId&&boards.some(b=>b.id===originalBoardId)&&originalBoardId!==currentBoardId){
+      switchBoard(originalBoardId);
+    }
+    if(okTabs&&added>0){
+      banner(added+" movimiento"+(added===1?"":"s")+" nuevo"+(added===1?"":"s")+" desde Google Sheets.","info",4500);
+    }
+  }catch(e){
+    /* fallo silencioso: no interrumpir con un aviso solo por abrir la app sin conexión */
   }
 }
 function openWriteModal(){
@@ -897,10 +944,37 @@ function saveWriteUrl(){
   document.getElementById("fWriteSecret").value=secret;
   document.getElementById("writeStep1").hidden=true;
   document.getElementById("writeStep2").hidden=false;
+  document.getElementById("fShareLink").value=buildShareLink();
 }
 async function copyWriteSecret(){
   const input=document.getElementById("fWriteSecret");
   const btn=document.getElementById("copySecretBtn");
+  try{
+    await navigator.clipboard.writeText(input.value);
+  }catch(e){
+    input.select();
+    document.execCommand("copy");
+  }
+  const old=btn.textContent;
+  btn.textContent="Copiado ✓";
+  setTimeout(()=>{btn.textContent=old;},1800);
+}
+function buildShareLink(){
+  const cfg={};
+  const s=localStorage.getItem("fin:sheetlink");
+  const w=localStorage.getItem("fin:writeurl");
+  const k=localStorage.getItem("fin:writesecret");
+  if(s)cfg.s=s;
+  if(w)cfg.w=w;
+  if(k)cfg.k=k;
+  if(!Object.keys(cfg).length)return "";
+  const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+  return location.origin+location.pathname+"#cfg="+encoded;
+}
+async function copyShareLink(){
+  const input=document.getElementById("fShareLink");
+  if(!input.value)return;
+  const btn=document.getElementById("copyShareBtn");
   try{
     await navigator.clipboard.writeText(input.value);
   }catch(e){
@@ -1396,7 +1470,9 @@ function toggleTheme(){
 applyTheme(document.documentElement.getAttribute("data-theme")==="light"?"light":"dark");
 
 /* ---------- arranque ---------- */
+applyConfigLink();
 if(load()){setSave("ok");show();}
+autoSyncOnOpen();
 </script>
 </body>
 </html>
