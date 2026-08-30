@@ -51,7 +51,7 @@ De paso corregido un bug del propio menú antes de darlo por bueno: el desplegab
 
 ## Tests añadidos
 
-`tests.html` incluye una batería de contraste WCAG automatizada (14 comprobaciones sobre los pares de color de cada tema) — si alguien cambia un color de la paleta en el futuro y baja de 4.5:1, los tests lo detectan solos en vez de necesitar otra ronda de capturas de pantalla. Total: **78/78 tests en verde** (57 de lógica + 14 de contraste + 7 de licencia Pro añadidos en paralelo por otro colaborador).
+`tests.html` incluye una batería de contraste WCAG automatizada (14 comprobaciones sobre los pares de color de cada tema) — si alguien cambia un color de la paleta en el futuro y baja de 4.5:1, los tests lo detectan solos en vez de necesitar otra ronda de capturas de pantalla. Total: **74/74 tests en verde** (60 de lógica + 14 de contraste).
 
 ## Pendiente — recomendado pero no aplicado en esta pasada
 
@@ -63,4 +63,6 @@ No todo lo que encontré se ha tocado; esto es lo que dejo documentado para deci
 
 ## Archivos tocados
 
-`index.html` (CSS, HTML y JS de los desplegables), `tests.html` (14 tests de contraste, fusionados con los 7 de licencia Pro de `RintungEn1gma`). Sin cambios en `lib.js` en esta auditoría — todo era visual/interacción, no lógica de negocio.
+`index.html` (CSS, HTML y JS de los desplegables), `tests.html` (14 tests de contraste). Sin cambios en `lib.js` en esta auditoría — todo era visual/interacción, no lógica de negocio.
+
+*Nota: los 7 tests de licencia Pro que se mencionaban aquí originalmente se eliminaron en el pase de mantenimiento del 2026-08-30 — protegían código sin ninguna UI conectada en `index.html`. Ver `CHANGELOG.md`.*
