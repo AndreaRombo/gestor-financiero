@@ -222,7 +222,7 @@ El tamaño correcto de un spec se mide por las tareas que genera en el TechPlan:
             └── specs/
 ```
 
-En este proyecto (`gestor-financiero`, single-file HTML sin build) no hace falta replicar esta estructura al pie de la letra — `lib.js` ya hace de "código puro testeable" y `tests.html` de suite de tests. Si un spec/tech-plan merece quedar documentado, guárdalo en `.claude/skills/sdd/` o donde acordéis, no hace falta la carpeta `.aicontext/`.
+En este proyecto (`gestor-financiero`, single-file HTML sin build) no hace falta replicar esta estructura al pie de la letra — `lib.js` ya hace de "código puro testeable" y `tests.html` de suite de tests. Los planes/specs que merezcan quedar documentados se guardan en `docs/sdd/` (p. ej. `docs/sdd/plan.md`) — no en `.aicontext/`, y no solo en el archivo local de modo Plan de Claude Code (`~/.claude/plans/`, que no se sincroniza por git y Andrea no vería).
 
 ---
 
