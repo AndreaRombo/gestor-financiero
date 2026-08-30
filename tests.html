@@ -137,6 +137,43 @@ assertEqual(guessColumns([["solo","texto","sin","numeros","ni","fechas"]],2026),
   assertTrue(sig(r3).startsWith("|"),"sig con fecha null no rompe, deja el campo vacio");
 })();
 
+/* ---------- contraste WCAG AA (evita que un futuro cambio de color rompa accesibilidad) ---------- */
+function luminance(hex){
+  hex=hex.replace("#","");
+  const c=[0,2,4].map(i=>parseInt(hex.substr(i,2),16)/255);
+  const lin=c.map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));
+  return 0.2126*lin[0]+0.7152*lin[1]+0.0722*lin[2];
+}
+function contrastRatio(hex1,hex2){
+  const l1=luminance(hex1),l2=luminance(hex2);
+  const lighter=Math.max(l1,l2),darker=Math.min(l1,l2);
+  return (lighter+0.05)/(darker+0.05);
+}
+function assertContrastAA(fg,bg,name,minRatio){
+  minRatio=minRatio||4.5;
+  const ratio=contrastRatio(fg,bg);
+  log(ratio>=minRatio,name,"ratio="+ratio.toFixed(2)+" (minimo "+minRatio+":1)");
+}
+// Estos valores deben coincidir con las variables --text/--muted/--faint/--income/--expense/--brand
+// de index.html en cada tema. Si cambias un color ahí, actualiza también aquí — el test solo puede
+// proteger lo que sabe que debería ser.
+const DARK={base:"#0A0D14",panel:"#121722",text:"#E8EDF7",muted:"#8B98B0",faint:"#7583A0",income:"#34D399",expense:"#FB7185"};
+const LIGHT={base:"#F5F6FA",panel:"#FFFFFF",text:"#161A22",muted:"#5B6472",faint:"#636B79",income:"#047857",expense:"#D3123F"};
+assertContrastAA(DARK.text,DARK.base,"[oscuro] texto principal sobre fondo");
+assertContrastAA(DARK.muted,DARK.base,"[oscuro] texto muted sobre fondo");
+assertContrastAA(DARK.faint,DARK.base,"[oscuro] texto faint sobre fondo");
+assertContrastAA(DARK.faint,DARK.panel,"[oscuro] texto faint sobre panel");
+assertContrastAA(DARK.income,DARK.base,"[oscuro] verde ingresos sobre fondo");
+assertContrastAA(DARK.expense,DARK.base,"[oscuro] rojo gastos sobre fondo");
+assertContrastAA(LIGHT.text,LIGHT.base,"[claro] texto principal sobre fondo");
+assertContrastAA(LIGHT.muted,LIGHT.base,"[claro] texto muted sobre fondo");
+assertContrastAA(LIGHT.faint,LIGHT.base,"[claro] texto faint sobre fondo");
+assertContrastAA(LIGHT.faint,LIGHT.panel,"[claro] texto faint sobre panel");
+assertContrastAA(LIGHT.income,LIGHT.base,"[claro] verde ingresos sobre fondo");
+assertContrastAA(LIGHT.expense,LIGHT.base,"[claro] rojo gastos sobre fondo");
+assertContrastAA("#0A0414","#A78BFA","texto de boton primario sobre morado (oscuro)");
+assertContrastAA("#0A0414","#7C5CFC","texto de boton primario sobre morado (claro)");
+
 document.getElementById("out").innerHTML=lines.join("");
 document.getElementById("summary").innerHTML=
   (fail===0?'<span class="pass">TODO OK — '+pass+' tests correctos</span>':'<span class="fail">'+fail+' FALLOS de '+(pass+fail)+' tests</span>');

@@ -4,6 +4,8 @@ Aplicación web de finanzas personales: importa extractos bancarios y hojas de G
 
 **App en vivo:** https://andrearombo.github.io/gestor-financiero/
 
+**Diseño y accesibilidad:** ver [UX_AUDIT.md](UX_AUDIT.md) — auditoría UX/UI con hallazgos medidos (no solo a ojo), qué se corrigió y qué queda pendiente de decidir.
+
 ## Qué hace
 
 - **Importa extractos** en Excel (`.xlsx`, `.xlsm`, `.xls` — incluidos los `.xls` que en realidad son una tabla HTML, muy típico de la banca online) y CSV.

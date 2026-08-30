@@ -16,14 +16,14 @@
 <style>
 :root{
   --base:#0A0D14; --panel:#121722; --raised:#171E2B; --line:#242C3D; --lineSoft:#1C2434; --lineHover:#2E3849;
-  --text:#E8EDF7; --muted:#8B98B0; --faint:#5D6A82;
+  --text:#E8EDF7; --muted:#8B98B0; --faint:#7583A0;
   --brand:#A78BFA; --income:#34D399; --expense:#FB7185;
   color-scheme:dark;
 }
 :root[data-theme="light"]{
   --base:#F5F6FA; --panel:#FFFFFF; --raised:#EEF0F6; --line:#E1E4EC; --lineSoft:#ECEEF4; --lineHover:#C7CCDA;
-  --text:#161A22; --muted:#5B6472; --faint:#8891A0;
-  --brand:#7C5CFC; --income:#059669; --expense:#E11D48;
+  --text:#161A22; --muted:#5B6472; --faint:#636B79;
+  --brand:#7C5CFC; --income:#047857; --expense:#D3123F;
   color-scheme:light;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -43,6 +43,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:18p
 h1{font-size:26px;font-weight:700;letter-spacing:-.03em}
 .sub{color:var(--muted);font-size:12.5px;margin-top:5px;max-width:44ch}
 .hactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hactions[hidden]{display:none}
 .hwrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .savedot{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);margin-right:2px}
 .savedot i{width:6px;height:6px;border-radius:50%;background:var(--faint);display:block}
@@ -54,10 +55,12 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.03em}
 button{font-family:inherit;cursor:pointer;border:none;transition:background .13s ease,border-color .13s ease,color .13s ease}
 .btn{padding:9px 14px;border-radius:9px;font-size:12.5px;font-weight:500;background:var(--panel);border:1px solid var(--line);color:var(--text)}
 .btn:hover{background:var(--raised);border-color:var(--lineHover)}
-.btn.primary{background:var(--brand);border-color:var(--brand);color:#1A1030;font-weight:600}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#0A0414;font-weight:600}
 .btn.primary:hover{background:#BCA6FC;border-color:#BCA6FC}
 .btn.ghost{background:transparent}
 .btn.ghost:hover{background:var(--panel)}
+.btn.danger{color:var(--faint)}
+.btn.danger:hover{background:rgba(251,113,133,.1);border-color:var(--expense);color:var(--expense)}
 .btn.sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
 .btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .btn[disabled]{opacity:.55;cursor:default}
@@ -83,7 +86,7 @@ button{font-family:inherit;cursor:pointer;border:none;transition:background .13s
 .tabadd{flex:0 0 auto;align-self:center;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:16px}
 .tabadd:hover{color:var(--text);border-color:var(--lineHover)}
 
-.fvgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.fvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 .fvcard{background:var(--raised);border:1px solid var(--lineSoft);border-radius:14px;padding:15px}
 .fvhead{display:flex;align-items:center;gap:7px;margin-bottom:9px}
 .fvdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
@@ -191,7 +194,8 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   header{gap:14px}
   .hwrap{width:100%}
   .hactions{width:100%}
-  .hactions .btn{flex:1}
+  .hactions .btn{flex:1 1 100%}
+  .hactions .savedot{flex:0 0 100%;justify-content:center;margin:0 0 2px}
 }
 @media (prefers-reduced-motion:reduce){
   .bfill,.ribbon span{transition:none}
@@ -213,7 +217,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
         <button class="btn" id="driveBtn" onclick="importFromDrive()">Desde Google Sheets</button>
         <button class="btn ghost sm" onclick="setupWriteUrl()" title="Configurar o cambiar la escritura hacia tu Google Sheet">🔗 Escritura Sheets</button>
         <button class="btn primary" onclick="openForm()">Añadir movimiento</button>
-        <button class="btn ghost" onclick="wipe()">Borrar movimientos</button>
+        <button class="btn ghost danger" onclick="wipe()">Borrar movimientos</button>
       </div>
     </div>
   </header>
