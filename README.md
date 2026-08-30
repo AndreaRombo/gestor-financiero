@@ -115,6 +115,7 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 - **Añadir un colaborador**: en GitHub, Settings del repo → Collaborators → Add people (con su usuario o email de GitHub). Un colaborador con acceso puede editar el código y abrir PRs, pero **no comparte automáticamente los datos financieros** — esos son locales de cada navegador (ver más arriba).
 - **Antes de publicar un cambio en `lib.js`**, abre `tests.html` y comprueba que sigue en verde. Si añades un formato de fecha/importe nuevo o una fuente de datos nueva, añade también su test — así queda protegido para siempre, no solo probado una vez a mano.
 - **Skill de Claude Code**: `.claude/skills/sdd/SKILL.md` documenta la metodología Spec-Driven Development que sigue el equipo (cuándo definir spec/plan técnico antes de programar, reglas de oro, checklist antes de hacer push). Se carga automáticamente al usar Claude Code en este repo.
+- **`CLAUDE.md`** (en la raíz): instrucciones que Claude Code lee en cada sesión de este repo — checklist de cierre, reglas críticas (no tocar claves de `localStorage`, siempre rama+PR, etc.) y convenciones de código reales del proyecto.
 
 ## Librerías externas
 
