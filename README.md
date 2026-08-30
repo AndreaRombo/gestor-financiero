@@ -29,7 +29,7 @@ Los datos (movimientos, categorías, pestañas) se guardan en el **`localStorage
 
 ## Importar desde Google Sheets
 
-Botón "Desde Google Sheets" (en la pantalla inicial y en la cabecera):
+Botón "Desde Google Sheets" (en la pantalla inicial; en la cabecera está dentro del desplegable **Importar ▾**):
 
 1. Pide el enlace para compartir de la hoja — debe estar compartida como **"Cualquiera con el enlace puede ver"** (Google Sheets → Compartir → Acceso general). No hace falta iniciar sesión en Google ni crear nada en Google Cloud Console.
 2. Intenta descubrir automáticamente **todas las pestañas** de la hoja (leyendo la página de edición pública) y crea una pestaña de la app por cada una. Si esa detección falla (algunos navegadores pueden bloquearla por CORS), cae de forma segura a importar solo la pestaña del enlace pegado, sin romperse.
@@ -93,7 +93,7 @@ Hay dos caminos para crear el script — usa el que te funcione:
    - Quién tiene acceso: **Cualquier usuario**.
 5. Pulsa Implementar. Te pedirá autorizar el script para editar tus hojas — es un permiso tuyo, sobre tu propia hoja, un único clic de "Permitir".
 6. Copia la URL de la aplicación web (termina en `/exec`).
-7. En la app, botón **"🔗 Escritura Sheets"** en la cabecera → pega esa URL cuando te la pida. Justo después te enseñará un código secreto: cópialo y sustituye `PEGA_AQUI_TU_CODIGO_SECRETO` en el script (paso 2), guarda, y vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Nueva versión → Implementar** para que el cambio surta efecto.
+7. En la app, desplegable **⚙ ▾** de la cabecera → **"🔗 Escritura en Sheets"** → pega esa URL cuando te la pida. Justo después te enseñará un código secreto: cópialo y sustituye `PEGA_AQUI_TU_CODIGO_SECRETO` en el script (paso 2), guarda, y vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Nueva versión → Implementar** para que el cambio surta efecto.
 
 A partir de ahí, cambiar una categoría en la app también la cambia en la hoja (columna Categoría/Tag y, si existe, Fijo/Variable). Editar un concepto actualiza la columna Concepto/Descripción. Los movimientos añadidos a mano en la app, o los importados desde un Excel local (no Sheets), no se escriben de vuelta a ningún sitio — solo aplica a filas que vinieron de una hoja de Sheets importada.
 
@@ -111,9 +111,10 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 - **`lib.js`**: toda la lógica pura sin DOM — parseo de fechas/importes, categorización, CSV, extracción de enlaces de Sheets. Se carga antes que el script principal (`<script src="lib.js">`) y es lo que testea `tests.html`. Si tocas fechas, importes, CSV o categorización, casi seguro que el cambio va aquí, no en `index.html`.
 - **`tests.html`**: batería de tests de `lib.js`. Ábrelo en el navegador — pinta cada test en verde/rojo y un resumen arriba. No necesita servidor ni build: doble clic y listo.
 - Para probar cambios en local, basta con abrir `index.html` (o `tests.html`) con doble clic, o servirlos con cualquier servidor estático — deben estar en la misma carpeta que `lib.js` para que la ruta relativa `src="lib.js"` funcione.
-- Para publicar: `git commit` + `git push` a `main`. GitHub Pages despliega automáticamente en `https://andrearombo.github.io/gestor-financiero/` (tarda 1-2 minutos; si no ves el cambio, prueba un refresco forzado — Ctrl+Shift+R — porque el navegador puede cachear la versión anterior).
-- **Añadir un colaborador**: en GitHub, Settings del repo → Collaborators → Add people (con su usuario o email de GitHub). Un colaborador con acceso puede editar el código y hacer push, pero **no comparte automáticamente los datos financieros** — esos son locales de cada navegador (ver más arriba).
+- Para publicar: rama nueva por cambio + `git push` + Pull Request en GitHub (revisar el diff y **Merge pull request**). GitHub Pages despliega automáticamente en `https://andrearombo.github.io/gestor-financiero/` en cuanto se fusiona a `main` (tarda 1-2 minutos; si no ves el cambio, prueba un refresco forzado — Ctrl+Shift+R — porque el navegador puede cachear la versión anterior).
+- **Añadir un colaborador**: en GitHub, Settings del repo → Collaborators → Add people (con su usuario o email de GitHub). Un colaborador con acceso puede editar el código y abrir PRs, pero **no comparte automáticamente los datos financieros** — esos son locales de cada navegador (ver más arriba).
 - **Antes de publicar un cambio en `lib.js`**, abre `tests.html` y comprueba que sigue en verde. Si añades un formato de fecha/importe nuevo o una fuente de datos nueva, añade también su test — así queda protegido para siempre, no solo probado una vez a mano.
+- **Skill de Claude Code**: `.claude/skills/sdd/SKILL.md` documenta la metodología Spec-Driven Development que sigue el equipo (cuándo definir spec/plan técnico antes de programar, reglas de oro, checklist antes de hacer push). Se carga automáticamente al usar Claude Code en este repo.
 
 ## Librerías externas
 

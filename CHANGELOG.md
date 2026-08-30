@@ -4,6 +4,12 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Añadir skill de Claude Code (`.claude/skills/sdd/`) con la metodología de trabajo Spec-Driven Development del equipo.
+- UX: agrupar las acciones de la cabecera en menús desplegables ("Importar", "⚙") con accesibilidad ARIA y cierre por teclado/clic fuera.
+- Eliminar `index (1).html` e `index_actualizado.html`, duplicados subidos por error.
+- Añadir lógica de licencia Pro (Gumroad) en `lib.js` — verificación de clave, aún sin cablear a la interfaz.
+- Auditoría UX/UI: corrige bug de botones visibles antes de tiempo, overflow en móvil, contraste de color insuficiente (WCAG AA) y hueco visual en el panel Fijo/Variable; añade 14 tests automáticos de contraste. Detalle completo en [UX_AUDIT.md](UX_AUDIT.md).
+- Quitar el panel "Mes a mes" (y el día de corte); añadir panel "Fijo vs Variable" con totales del periodo.
 - Añadir `.gitignore` para excluir configuración local de Claude Code.
 - README: alternativa `script.new` cuando no aparece el menú "Extensiones" en Sheets.
 - Seguridad: escapar labels de categoría (XSS), asegurar escritura a Sheets con secreto; extraer lógica pura a `lib.js` con 62 tests.
