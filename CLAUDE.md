@@ -24,6 +24,7 @@ Abre `tests.html` en el navegador. Deben pasar **todos** (resumen verde arriba) 
 - Verificar la funcionalidad implementada
 - Verificar modo claro y oscuro
 - Verificar que nada anterior se rompió (sobre todo si tocas `index.html`)
+- Si tocas algo de Google Sheets: abrir el archivo con doble clic (`file://`) NO sirve para probarlo — Google bloquea esas peticiones por CORS. Sirve la carpeta con un servidor local (Live Server de VS Code, `npx serve`, etc.) y prueba por `http://localhost:...`.
 
 ### 3. Actualizar la documentación si hay cambios de arquitectura
 `docs/TECHNICAL.md` si cambia la estructura de datos, una clave de `localStorage`, o cómo funciona algo por dentro. `README.md` si cambia dónde vive un botón en la interfaz o cómo se usa una funcionalidad.

@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Fix: avisar con un mensaje claro cuando se intenta importar desde Google Sheets abriendo `index.html` directamente (`file://`) — Google bloquea esas peticiones por CORS y antes fallaba con el mensaje genérico de "no se pudo leer la hoja", sin explicar por qué. Documentado cómo probar esta función en local (servidor estático, no doble clic).
 - Añadir skill de Claude Code `aidev-best-practices` (prompts efectivos, señales de alerta con el agente, checklist de sesión) y cambiar la convención de specs de un único `plan.md` a archivos numerados `docs/sdd/spec-N-nombre.md` que no se sobrescriben entre sí.
 - Documentación: crear `docs/TECHNICAL.md` con la arquitectura y decisiones técnicas (movido fuera del README, que se queda centrado en qué hace la app y cómo usarla); guardar los planes SDD aprobados en `docs/sdd/` para que sean visibles en el repo, no solo locales a quien planificó.
 - Añadir skill de Claude Code (`.claude/skills/sdd/`) con la metodología de trabajo Spec-Driven Development del equipo.
