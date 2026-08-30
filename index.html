@@ -819,6 +819,10 @@ function applyConfigLink(){
     if(cfg.s)localStorage.setItem("fin:sheetlink",cfg.s);
     if(cfg.w)localStorage.setItem("fin:writeurl",cfg.w);
     if(cfg.k)localStorage.setItem("fin:writesecret",cfg.k);
+    if(cfg.s&&Array.isArray(cfg.t)&&cfg.t.length){
+      const info=extractSheetInfo(cfg.s);
+      if(info)saveKnownTabs(info.id,cfg.t);
+    }
     history.replaceState(null,"",location.pathname+location.search);
     banner("Configuración de Google Sheets guardada en este dispositivo.","info",5000);
   }catch(e){
@@ -844,12 +848,25 @@ function switchOrCreateBoardByTab(gid,name){
   else if(name&&b.name!==name){b.name=name;}
   loadBoardData(b);
 }
+function getKnownTabs(sheetId){
+  try{
+    const raw=localStorage.getItem("fin:sheettabs");
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    return (d&&d.id===sheetId&&Array.isArray(d.tabs)&&d.tabs.length)?d.tabs:null;
+  }catch(e){return null;}
+}
+function saveKnownTabs(sheetId,tabs){
+  if(!sheetId||!tabs||!tabs.length)return;
+  localStorage.setItem("fin:sheettabs",JSON.stringify({id:sheetId,tabs}));
+}
 async function syncSheetTabs(link,silent){
   const info=extractSheetInfo(link);
   if(!info)return {okTabs:0,failTabs:[],added:0,invalid:true};
   const discovered=await driveDiscoverTabs(info.id);
-  const targets=discovered.length?discovered:[{gid:info.gid,title:null}];
-  let okTabs=0,added=0;const failTabs=[];
+  const known=getKnownTabs(info.id);
+  const targets=discovered.length?discovered:(known?known.map(t=>({gid:t.gid,title:t.name})):[{gid:info.gid,title:null}]);
+  let okTabs=0,added=0;const failTabs=[];const syncedTabs=[];
   for(const t of targets){
     try{
       const url="https://docs.google.com/spreadsheets/d/"+info.id+"/gviz/tq?tqx=out:csv&gid="+t.gid;
@@ -861,11 +878,13 @@ async function syncSheetTabs(link,silent){
       switchOrCreateBoardByTab(t.gid,title);
       const ctx=tabDateContext(title);
       added+=ingestMatrix(csvToMatrix(text),title,ctx.year,true,{gid:t.gid},silent);
+      syncedTabs.push({gid:t.gid,name:title});
       okTabs++;
     }catch(err){
       failTabs.push(t.title||("gid "+t.gid));
     }
   }
+  if(syncedTabs.length)saveKnownTabs(info.id,syncedTabs);
   return {okTabs,failTabs,added};
 }
 async function importFromDrive(){
@@ -969,6 +988,11 @@ function buildShareLink(){
   if(s)cfg.s=s;
   if(w)cfg.w=w;
   if(k)cfg.k=k;
+  if(s){
+    const info=extractSheetInfo(s);
+    const known=info?getKnownTabs(info.id):null;
+    if(known&&known.length)cfg.t=known;
+  }
   if(!Object.keys(cfg).length)return "";
   const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
   return location.origin+location.pathname+"#cfg="+encoded;

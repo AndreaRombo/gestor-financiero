@@ -15,7 +15,7 @@ No hay build, no hay bundler, no hay backend propio, no hay base de datos. `inde
 
 ## Persistencia de datos
 
-Todo vive en `localStorage` del navegador, bajo tres claves con el prefijo `fin:`:
+Todo vive en `localStorage` del navegador, bajo claves con el prefijo `fin:`:
 
 | Clave | Contenido |
 |---|---|
@@ -23,6 +23,7 @@ Todo vive en `localStorage` del navegador, bajo tres claves con el prefijo `fin:
 | `fin:theme` | Preferencia de tema claro/oscuro |
 | `fin:sheetlink` | Último enlace de Google Sheets conectado (para poder "actualizar" sin volver a pegarlo) |
 | `fin:writeurl` / `fin:writesecret` | URL del Apps Script Web App y el código secreto, si se activó la escritura de vuelta a Sheets |
+| `fin:sheettabs` | Última lista de pestañas (`gid`+nombre) descubiertas con éxito en la hoja conectada — red de seguridad si el descubrimiento automático falla en algún dispositivo (ver más abajo) |
 
 **Regla dura: nunca se cambia el nombre de una clave existente en producción** — rompe los datos ya guardados de cualquier usuaria. Si hace falta cambiar la forma de los datos, se versiona dentro del propio objeto guardado (como ya pasó: `fin:v2` reemplazó a un formato anterior sin versión, con lectura retrocompatible en `load()`).
 
@@ -62,8 +63,9 @@ Detección de columnas (`ingestMatrix()`): busca cabeceras por texto (fecha/conc
 
 **Configuración portátil entre dispositivos y auto-sincronización** (ver spec [docs/sdd/spec-3-config-portatil-y-auto-sync.md](sdd/spec-3-config-portatil-y-auto-sync.md)): antes de esto, `fin:sheetlink`/`fin:writeurl`/`fin:writesecret` vivían solo en el `localStorage` del navegador donde se configuraron — pasar de ordenador a móvil obligaba a rehacer todo. Ahora:
 
-- `buildShareLink()` codifica `{s: fin:sheetlink, w: fin:writeurl, k: fin:writesecret}` en base64 dentro de `location.hash` (`#cfg=...`) y genera un enlace único (`writeStep2` del modal de escritura, campo "Enlace para configurar otro dispositivo"). Se usa `location.hash` en vez de query string para que no viaje en peticiones de servidor y se pueda limpiar de la URL visible con `history.replaceState()`.
-- `applyConfigLink()` corre al principio del arranque, **antes** de `load()`: si hay un `#cfg=...` en la URL, decodifica el JSON, guarda las tres claves en `localStorage`, limpia el hash de la URL (para que el secreto no quede en la barra de direcciones) y avisa con un banner. Un enlace corrupto no rompe el arranque — solo avisa con un banner de error y sigue.
+- `buildShareLink()` codifica `{s: fin:sheetlink, w: fin:writeurl, k: fin:writesecret, t: <pestañas conocidas>}` en base64 dentro de `location.hash` (`#cfg=...`) y genera un enlace único (`writeStep2` del modal de escritura, campo "Enlace para configurar otro dispositivo"). Se usa `location.hash` en vez de query string para que no viaje en peticiones de servidor y se pueda limpiar de la URL visible con `history.replaceState()`.
+- `applyConfigLink()` corre al principio del arranque, **antes** de `load()`: si hay un `#cfg=...` en la URL, decodifica el JSON, guarda las tres claves en `localStorage` (y las pestañas conocidas si vienen, vía `saveKnownTabs()`), limpia el hash de la URL (para que el secreto no quede en la barra de direcciones) y avisa con un banner. Un enlace corrupto no rompe el arranque — solo avisa con un banner de error y sigue.
+- **Pestañas conocidas** (`getKnownTabs()`/`saveKnownTabs()`, `localStorage` key `fin:sheettabs`, formato `{id: <sheet id>, tabs: [{gid, name}, ...]}`): `driveDiscoverTabs()` es scraping no oficial y puede fallar de forma distinta según el dispositivo/navegador (confirmado: en un móvil real, la petición al HTML de edición fallaba silenciosamente mientras que en el ordenador funcionaba, dejando el móvil con una única pestaña genérica "Google Sheets" en vez de las pestañas reales). Cada sincronización que descubre pestañas con éxito (`syncSheetTabs()`) guarda esa lista real (`gid`+nombre) en `fin:sheettabs`, keyed al ID de la hoja. Si `driveDiscoverTabs()` devuelve vacío (falla), `syncSheetTabs()` cae a esa lista guardada en vez del genérico `[{gid: <el de la URL pegada>, title:null}]` de antes — y como esa lista viaja también dentro del enlace de configuración (`buildShareLink()`/`applyConfigLink()`), un dispositivo nuevo configurado por enlace ya arranca con las pestañas reales conocidas, sin depender de que el scraping funcione ahí para tener un primer resultado razonable.
 - `autoSyncOnOpen()` corre al final del arranque, después de `load()`+`show()`: si hay una hoja conectada (`fin:sheetlink`), sincroniza en segundo plano sin diálogos ni overlay de carga (`syncSheetTabs(link, true)`, modo silencioso — reutiliza la misma lógica que `importFromDrive()`, extraída a una función compartida). Solo muestra un aviso si se añadió al menos un movimiento nuevo; si no hay novedades, no hay banner (para no ser ruidoso cada vez que se abre la app); si falla (sin conexión, hoja no accesible), falla en silencio — abrir la app sin cobertura no debe interrumpir con un error. Vuelve a dejar visible la pestaña en la que estaba la usuaria antes de sincronizar, aunque internamente haya tenido que cambiar de pestaña para actualizar cada una.
 - `ingestMatrix()` acepta ahora un parámetro `silent` (omite su propio `banner()` de "X movimientos añadidos") y devuelve el número de movimientos añadidos, para que `syncSheetTabs()` pueda sumar el total de todas las pestañas y decidir si merece la pena avisar.
 - La deduplicación existente (`sig()` en `lib.js`, por fecha+concepto+importe contra las filas ya presentes en el board) hace que repetir la sincronización en cada apertura sea seguro sin crear duplicados.
