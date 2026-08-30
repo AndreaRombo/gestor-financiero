@@ -35,6 +35,18 @@ Todo vive en `localStorage` del navegador, bajo claves con el prefijo `fin:`:
 
 El patrón de estado en tiempo de ejecución (`rows`, `boards`, `currentBoardId` como variables globales, sincronizadas a/desde el board activo con `syncBoard()`/`loadBoardData()` en cada cambio de pestaña) es manual pero deliberado: no hay framework de por medio, y reescribirlo a algo más "formal" (store centralizado, etc.) no está justificado sin un bug concreto que lo motive — ver decisión documentada en [`docs/sdd/spec-1-mantenimiento-refactor-tests.md`](sdd/spec-1-mantenimiento-refactor-tests.md).
 
+### Selector de pestañas (`renderTabs()`)
+
+Antes era una fila de pestañas al estilo navegador con scroll horizontal cuando no cabían — mal patrón en móvil (nada indica que hay más pestañas fuera de pantalla, y el scroll lateral en una tira de botones es incómodo al tacto). Ahora es un desplegable (`#boardDropdown`, mismo patrón `.dropdown`/`.dropdown-menu`/`toggleDropdown()` que ya usaban "Importar" y "⚙"): el botón muestra el nombre de la pestaña activa, y el menú lista todas las pestañas con un icono ✎ (renombrar, antes solo accesible por doble clic — se mantiene el doble clic también, pero el icono lo hace descubrible al tacto) y un × (eliminar, solo si hay más de una). Escala igual de bien con 2 pestañas que con 20, en cualquier ancho de pantalla — no depende de cuánto texto quepa en una fila.
+
+## Cabecera en móvil
+
+Antes, en `max-width:720px`, cada botón/desplegable de la cabecera (tema, indicador de guardado, Importar, Añadir movimiento, ⚙) se apilaba a ancho completo (`flex:1 1 100%`), ocupando gran parte de la pantalla antes de llegar a ver ningún dato. Ahora:
+
+- Tema, indicador de guardado (solo el punto de color, sin el texto "Guardado"), "Importar" (solo icono 📥 + ▾, sin el texto) y "⚙ ▾" quedan en una sola fila compacta, alineada a la derecha.
+- **"Añadir movimiento"** se convierte en un botón flotante circular (FAB, patrón estándar de apps móviles) fijo en la esquina inferior derecha — sigue siendo la acción principal, más accesible incluso (no hay que volver arriba para usarla), y deja de ocupar espacio de cabecera.
+- En pantallas más anchas (por encima de 720px) nada de esto aplica — la cabecera se ve igual que antes, con los botones de texto completo en una fila.
+
 ## Importación de archivos
 
 `index.html` implementa sus propios parsers, sin depender de una librería para el caso común:
