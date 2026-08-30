@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Fix: sustituir los dos `prompt()` encadenados de "Escritura en Sheets" por un modal propio en la app — los navegadores pueden bloquear en silencio los popups nativos repetidos, haciendo que el del código secreto pareciera "desaparecer". El modal nuevo tampoco depende de eso, y añade botón de copiar.
 - Fix: avisar con un mensaje claro cuando se intenta importar desde Google Sheets abriendo `index.html` directamente (`file://`) — Google bloquea esas peticiones por CORS y antes fallaba con el mensaje genérico de "no se pudo leer la hoja", sin explicar por qué. Documentado cómo probar esta función en local (servidor estático, no doble clic).
 - Añadir skill de Claude Code `aidev-best-practices` (prompts efectivos, señales de alerta con el agente, checklist de sesión) y cambiar la convención de specs de un único `plan.md` a archivos numerados `docs/sdd/spec-N-nombre.md` que no se sobrescriben entre sí.
 - Documentación: crear `docs/TECHNICAL.md` con la arquitectura y decisiones técnicas (movido fuera del README, que se queda centrado en qué hace la app y cómo usarla); guardar los planes SDD aprobados en `docs/sdd/` para que sean visibles en el repo, no solo locales a quien planificó.

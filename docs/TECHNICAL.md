@@ -56,6 +56,8 @@ Detección de columnas (`ingestMatrix()`): busca cabeceras por texto (fecha/conc
 
 **Escritura** (`writeBackCell()` + `writeBackCategoryChange()`): un Google Apps Script Web App propio (código en el README, lo despliega cada usuaria en su cuenta) recibe `POST` con `{gid, row, col, value, secret}` y solo escribe si el `secret` coincide — sin esto, la URL pública del script no basta para escribir nada. El `fetch` usa `mode:"no-cors"` (respuesta opaca, no se puede leer el resultado; el Apps Script no depende de CORS para escribir).
 
+**Configuración de la escritura** (`openWriteModal()`/`saveWriteUrl()`, modal `#writeOverlay`): pide la URL y, si es válida, muestra el secreto con un botón de copiar. Antes esto eran dos `prompt()` nativos encadenados — se cambió a un modal propio porque los navegadores pueden bloquear en silencio los `prompt()` repetidos en la misma página (sin avisar, sin lanzar error: simplemente no se muestran), lo que hacía parecer que el segundo popup "desaparecía". Un modal en la propia página no depende de los diálogos nativos del navegador y no tiene ese problema.
+
 ## Seguridad
 
 - **XSS**: todo texto que viene de fuera (concepto, categoría importada, nombre de pestaña) pasa por `esc()` (usa `textContent`/`innerHTML` de un `div` invisible) antes de insertarse en el DOM.

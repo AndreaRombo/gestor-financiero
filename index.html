@@ -233,7 +233,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
         <div class="dropdown right" id="settingsDropdown">
           <button class="btn ghost sm" onclick="toggleDropdown('settingsDropdown')" aria-haspopup="true" aria-expanded="false" title="Más opciones">⚙ ▾</button>
           <div class="dropdown-menu" role="menu">
-            <button role="menuitem" onclick="closeDropdowns();setupWriteUrl()">🔗 Escritura en Sheets</button>
+            <button role="menuitem" onclick="closeDropdowns();openWriteModal()">🔗 Escritura en Sheets</button>
             <hr>
             <button role="menuitem" class="danger" onclick="closeDropdowns();wipe()">🗑 Borrar movimientos</button>
           </div>
@@ -328,6 +328,34 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
     <div class="mfoot">
       <button class="btn ghost" onclick="closeCatForm()">Cancelar</button>
       <button class="btn primary" onclick="addCategory()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="writeOverlay" onclick="if(event.target===this)closeWriteModal()">
+  <div class="modal">
+    <div class="mhead"><h3 class="display">Escritura en Google Sheets</h3><button class="x" onclick="closeWriteModal()">&times;</button></div>
+    <div id="writeStep1">
+      <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;line-height:1.5">Pega la URL de tu Apps Script Web App (ver README) para que los cambios de categoría/concepto se guarden también en tu Google Sheet. Déjalo vacío y guarda para desactivarlo.</p>
+      <div class="field"><label>URL del Apps Script</label><input id="fWriteUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <p id="writeErr" style="color:var(--expense);font-size:12px;margin-top:-6px;margin-bottom:10px"></p>
+      <div class="mfoot">
+        <button class="btn ghost" onclick="closeWriteModal()">Cancelar</button>
+        <button class="btn primary" onclick="saveWriteUrl()">Guardar</button>
+      </div>
+    </div>
+    <div id="writeStep2" hidden>
+      <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;line-height:1.5">Copia este código y pégalo en la constante <code>SECRET</code> de tu Apps Script (ver README). Sin esto, nadie podrá escribir en tu hoja aunque descubra la URL.</p>
+      <div class="field">
+        <label>Código secreto</label>
+        <div style="display:flex;gap:8px">
+          <input id="fWriteSecret" type="text" readonly style="flex:1;font-family:'JetBrains Mono',monospace">
+          <button class="btn sm" onclick="copyWriteSecret()" id="copySecretBtn">Copiar</button>
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn primary" onclick="closeWriteModal()" style="flex:1;justify-content:center">Listo</button>
+      </div>
     </div>
   </div>
 </div>
@@ -830,29 +858,58 @@ async function importFromDrive(){
     localStorage.setItem("fin:sheetlink",link);
     if(okTabs)banner("Importadas "+okTabs+" pestaña"+(okTabs===1?"":"s")+" desde Google Sheets"+(failTabs.length?" · no se pudo leer: "+failTabs.join(", "):""),failTabs.length?"err":"info",failTabs.length?11000:4500);
     else banner('No se pudo leer la hoja. Comprueba que esté compartida como "cualquiera con el enlace puede ver".',"err",9000);
-    if(okTabs&&localStorage.getItem("fin:writeurl")===null)setupWriteUrl();
+    if(okTabs&&localStorage.getItem("fin:writeurl")===null)openWriteModal();
   }catch(err){
     banner(err.message||"No se pudo leer la hoja de Google Sheets.","err",9000);
   }finally{
     busy(false);
   }
 }
-function setupWriteUrl(){
-  const url=prompt('¿Quieres que los cambios de categoría/concepto que hagas en la app se guarden también en tu Google Sheet?\n\nPega aquí la URL de tu Apps Script Web App (ver README para cómo crearla), o deja esto vacío y pulsa Aceptar para no activarlo:');
+function openWriteModal(){
+  document.getElementById("writeStep1").hidden=false;
+  document.getElementById("writeStep2").hidden=true;
+  document.getElementById("writeErr").textContent="";
+  document.getElementById("fWriteUrl").value=localStorage.getItem("fin:writeurl")||"";
+  document.getElementById("writeOverlay").classList.add("on");
+  setTimeout(()=>document.getElementById("fWriteUrl").focus(),50);
+}
+function closeWriteModal(){document.getElementById("writeOverlay").classList.remove("on");}
+function saveWriteUrl(){
+  const url=document.getElementById("fWriteUrl").value;
   const trimmed=(url&&url.trim())?url.trim():"";
+  const err=document.getElementById("writeErr");
   if(trimmed&&!/^https:\/\/script\.google\.com\/macros\/s\/[^\/\s]+\/exec$/.test(trimmed)){
-    banner("Esa URL no parece una implementación de Apps Script válida (debe empezar por https://script.google.com/macros/s/... y acabar en /exec). No se ha activado la escritura.","err",11000);
+    err.textContent="Esa URL no parece una implementación de Apps Script válida (debe empezar por https://script.google.com/macros/s/... y acabar en /exec).";
     return;
   }
+  err.textContent="";
   localStorage.setItem("fin:writeurl",trimmed);
-  if(trimmed){
-    let secret=localStorage.getItem("fin:writesecret");
-    if(!secret){
-      secret=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2);
-      localStorage.setItem("fin:writesecret",secret);
-    }
-    prompt("Copia este código secreto y pégalo en la constante SECRET de tu Apps Script (ver README). Sin esto, nadie podrá escribir en tu hoja aunque descubra la URL:",secret);
+  if(!trimmed){
+    banner("Escritura a Sheets desactivada.");
+    closeWriteModal();
+    return;
   }
+  let secret=localStorage.getItem("fin:writesecret");
+  if(!secret){
+    secret=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2);
+    localStorage.setItem("fin:writesecret",secret);
+  }
+  document.getElementById("fWriteSecret").value=secret;
+  document.getElementById("writeStep1").hidden=true;
+  document.getElementById("writeStep2").hidden=false;
+}
+async function copyWriteSecret(){
+  const input=document.getElementById("fWriteSecret");
+  const btn=document.getElementById("copySecretBtn");
+  try{
+    await navigator.clipboard.writeText(input.value);
+  }catch(e){
+    input.select();
+    document.execCommand("copy");
+  }
+  const old=btn.textContent;
+  btn.textContent="Copiado ✓";
+  setTimeout(()=>{btn.textContent=old;},1800);
 }
 async function writeBackCell(gid,row,col,value){
   const url=localStorage.getItem("fin:writeurl");
@@ -1257,7 +1314,7 @@ const dz=document.getElementById("drop");
 ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("over");}));
 dz.addEventListener("drop",e=>onFile(e.dataTransfer.files[0]));
 dz.addEventListener("click",e=>{if(e.target===dz||e.target.tagName==="H2"||e.target.tagName==="P")pickFile();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();closeCatForm();closeDropdowns();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();closeCatForm();closeWriteModal();closeDropdowns();}});
 
 /* ---------- tema ---------- */
 const THEME_KEY="fin:theme";
