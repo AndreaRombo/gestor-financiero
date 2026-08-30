@@ -791,6 +791,10 @@ function switchOrCreateBoardByName(name){
   loadBoardData(b);
 }
 async function importFromDrive(){
+  if(location.protocol==="file:"){
+    banner('Estás abriendo este archivo directamente desde tu ordenador (file://) — Google bloquea estas peticiones por seguridad (CORS), así que la importación desde Sheets no puede funcionar así. Sirve la carpeta con un servidor local para probarlo (por ejemplo, la extensión "Live Server" de VS Code, o "npx serve") — en la web publicada (GitHub Pages) esto funciona con normalidad.',"err",15000);
+    return;
+  }
   let link=localStorage.getItem("fin:sheetlink");
   if(link&&!confirm("Ya tienes conectada una hoja de Google Sheets. ¿Actualizar desde ella? (Cancelar para pegar un enlace distinto)")){
     link=null;
