@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tests — Gestor Financiero</title>
+<style>
+body{font-family:ui-monospace,monospace;background:#0A0D14;color:#E8EDF7;padding:20px;font-size:13px}
+.pass{color:#34D399}
+.fail{color:#FB7185;font-weight:bold}
+#summary{font-size:16px;font-weight:bold;margin-top:16px;padding-top:12px;border-top:1px solid #333}
+</style>
+</head>
+<body>
+<h1>Tests — lib.js</h1>
+<div id="out"></div>
+<div id="summary"></div>
+<script src="lib.js"></script>
+<script>
+let pass=0,fail=0;
+const lines=[];
+function log(ok,name,detail){
+  if(ok)pass++;else fail++;
+  lines.push('<div class="'+(ok?"pass":"fail")+'">'+(ok?"OK":"FALLO")+" — "+name+(detail?" ("+detail+")":"")+"</div>");
+}
+function assertEqual(actual,expected,name){
+  const ok=JSON.stringify(actual)===JSON.stringify(expected);
+  log(ok,name,ok?"":"esperado "+JSON.stringify(expected)+" obtuve "+JSON.stringify(actual));
+}
+function assertTrue(cond,name){ log(!!cond,name); }
+function assertNull(actual,name){ assertEqual(actual,null,name); }
+function dateStr(d){ return d?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"):"null"; }
+
+/* ---------- strip ---------- */
+assertEqual(strip("Café Málaga"),"cafe malaga","strip quita tildes y pasa a minusculas");
+assertEqual(strip("ÑOÑO"),"nono","strip maneja la ene con virgulilla");
+assertEqual(strip(null),"","strip(null) no rompe");
+assertEqual(strip(undefined),"","strip(undefined) no rompe");
+
+/* ---------- parseAmount ---------- */
+assertEqual(parseAmount("13,37"),13.37,"parseAmount coma decimal");
+assertEqual(parseAmount("-8,87"),-8.87,"parseAmount negativo con coma");
+assertEqual(parseAmount("1.234,56"),1234.56,"parseAmount miles con punto, decimal con coma");
+assertEqual(parseAmount("1,234.56"),1234.56,"parseAmount miles con coma, decimal con punto (formato US)");
+assertEqual(parseAmount("(45,00)"),-45,"parseAmount parentesis = negativo");
+assertEqual(parseAmount("35,57 €"),35.57,"parseAmount con simbolo de euro y espacio");
+assertEqual(parseAmount(-8.87),-8.87,"parseAmount con numero ya parseado");
+assertTrue(isNaN(parseAmount("")),"parseAmount cadena vacia da NaN");
+assertTrue(isNaN(parseAmount("abc")),"parseAmount texto no numerico da NaN");
+assertEqual(parseAmount("+50"),50,"parseAmount con signo mas explicito");
+
+/* ---------- parseDate: formatos completos ---------- */
+assertEqual(dateStr(parseDate("28/07/2026")),"2026-07-28","parseDate DD/MM/YYYY");
+assertEqual(dateStr(parseDate("2026-07-28")),"2026-07-28","parseDate YYYY-MM-DD");
+assertEqual(dateStr(parseDate("30/03/26")),"2026-03-30","parseDate con año de 2 digitos");
+assertNull(parseDate(""),"parseDate vacio da null");
+assertNull(parseDate(null),"parseDate null da null");
+
+/* ---------- parseDate: fechas sin año (necesitan defaultYear) ---------- */
+assertEqual(dateStr(parseDate("07/01",2026)),"2026-01-07","parseDate DD/MM sin año usa defaultYear");
+assertNull(parseDate("07/01"),"parseDate DD/MM sin año NI defaultYear no inventa nada (no debe adivinar con Date nativo)");
+assertEqual(dateStr(parseDate("29-ago",2026)),"2026-08-29","parseDate DD-mmm (abreviatura mes en texto)");
+assertEqual(dateStr(parseDate("29 ago",2026)),"2026-08-29","parseDate DD mmm con espacio en vez de guion");
+
+/* ---------- parseDate: fechas de Excel (numero de serie) ---------- */
+assertEqual(dateStr(parseDate(45658)),"2025-01-01","parseDate serial de Excel");
+
+/* ---------- categorize ---------- */
+assertEqual(categorize("MERCADONA MIJAS",-50),"supermercado","categorize Mercadona -> supermercado");
+assertEqual(categorize("NETFLIX.COM",-13.99),"suscripciones","categorize Netflix -> suscripciones");
+assertEqual(categorize("NOMINA ADECCO GROUP",2480),"ingresos","categorize nomina -> ingresos");
+assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",-20),"varios","categorize gasto desconocido -> varios");
+assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",20),"ingresos","categorize positivo desconocido -> ingresos (por signo)");
+assertEqual(categorize("REPSOL E.S. FUENGIROLA",-60),"transporte","categorize gasolinera -> transporte");
+
+/* ---------- categorySlug ---------- */
+assertEqual(categorySlug("Hipoteca"),"hipoteca","categorySlug basico");
+assertEqual(categorySlug("Actividad Marta"),"actividad-marta","categorySlug con espacio");
+assertEqual(categorySlug("Suscripción "),"suscripcion","categorySlug con tilde y espacio final");
+assertEqual(categorySlug(""),"cat","categorySlug de cadena vacia da 'cat'");
+
+/* ---------- csvToMatrix / splitLine ---------- */
+assertEqual(csvToMatrix('"a","b","c"\n"1","2","3"'),[["a","b","c"],["1","2","3"]],"csvToMatrix basico");
+assertEqual(csvToMatrix('"con, coma","normal"')[0],["con, coma","normal"],"csvToMatrix respeta comas dentro de comillas");
+assertEqual(csvToMatrix('"con ""comillas""","x"')[0],['con "comillas"',"x"],"csvToMatrix comillas escapadas dobles");
+assertEqual(csvToMatrix("a;b;c")[0],["a","b","c"],"csvToMatrix separador punto y coma");
+
+/* ---------- extractSheetInfo ---------- */
+assertEqual(
+  extractSheetInfo("https://docs.google.com/spreadsheets/d/1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8/edit?gid=1147717476#gid=1147717476"),
+  {id:"1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8",gid:"1147717476"},
+  "extractSheetInfo con gid en query y hash"
+);
+assertEqual(
+  extractSheetInfo("https://docs.google.com/spreadsheets/d/1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8/edit?usp=sharing"),
+  {id:"1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8",gid:"0"},
+  "extractSheetInfo sin gid cae a '0'"
+);
+assertNull(extractSheetInfo("https://example.com/no-es-una-hoja"),"extractSheetInfo con URL invalida da null");
+assertNull(extractSheetInfo(""),"extractSheetInfo con cadena vacia da null");
+
+/* ---------- tabDateContext ---------- */
+assertEqual(tabDateContext("Enero 2026"),{month:1,year:2026},"tabDateContext mes completo + año explicito");
+assertEqual(tabDateContext("Feb2026"),{month:2,year:2026},"tabDateContext abreviatura pegada al año");
+assertEqual(tabDateContext("MarOpen"),{month:3,year:2026},"tabDateContext sin año, mes ene-ago -> 2026");
+assertEqual(tabDateContext("Septiembre 2025"),{month:9,year:2025},"tabDateContext mes completo con año 2025");
+assertEqual(tabDateContext("Reforma cuarto"),{month:null,year:2026},"tabDateContext sin mes reconocible -> null, año por defecto 2026");
+assertEqual(tabDateContext("Inversiones"),{month:null,year:2026},"tabDateContext 'Inversiones' no matchea ningun mes por casualidad");
+assertEqual(tabDateContext("Anual  Ingresos"),{month:null,year:2026},"tabDateContext 'Anual Ingresos' sin mes reconocible");
+assertEqual(tabDateContext("Diciembre 2025"),{month:12,year:2025},"tabDateContext diciembre 2025");
+
+/* ---------- monthKey (agrupacion por mes / dia de corte) ---------- */
+assertEqual(monthKey(new Date(2026,5,15),1),"2026-06","monthKey con cutoff=1 usa el mes de calendario");
+assertEqual(monthKey(new Date(2026,5,28),28),"2026-07","monthKey cutoff=28: el dia 28 ya cuenta como mes siguiente");
+assertEqual(monthKey(new Date(2026,5,27),28),"2026-06","monthKey cutoff=28: el dia 27 sigue en el mes actual");
+assertEqual(monthKey(new Date(2025,11,28),28),"2026-01","monthKey cutoff=28 en diciembre pasa de año");
+assertEqual(monthKey(null,1),"sin-fecha","monthKey sin fecha da 'sin-fecha'");
+
+/* ---------- guessColumns (deteccion posicional sin cabecera) ---------- */
+(function(){
+  const matrix=[
+    ["Día","",""],
+    ["09/01","Envío a MyInvestor y se compra en fondo indexado",5000],
+    ["10/01","Envío a MyInvestor y se compra en fondo indexado",5000],
+    ["13/01","Envío a MyInvestor",5000],
+    ["14/01","Envío a MyInvestor",5000]
+  ];
+  const cols=guessColumns(matrix,2026);
+  assertTrue(cols!==null,"guessColumns encuentra columnas sin cabecera reconocible");
+  if(cols){
+    assertEqual(cols.f,0,"guessColumns detecta la columna de fecha por posicion");
+    assertEqual(cols.a,2,"guessColumns detecta la columna de importe por posicion");
+    assertEqual(cols.c,1,"guessColumns detecta la columna de concepto (mas texto) por posicion");
+  }
+})();
+assertEqual(guessColumns([["solo","texto","sin","numeros","ni","fechas"]],2026),null,"guessColumns devuelve null si no hay suficiente señal");
+
+/* ---------- sig (firma de deduplicado) ---------- */
+(function(){
+  const r1={fecha:new Date(2026,6,28),concepto:"Café Málaga",importe:-3.5};
+  const r2={fecha:new Date(2026,6,28),concepto:"CAFE MALAGA",importe:-3.5};
+  assertEqual(sig(r1),sig(r2),"sig ignora mayusculas/tildes al comparar duplicados");
+  const r3={fecha:null,concepto:"x",importe:1};
+  assertTrue(sig(r3).startsWith("|"),"sig con fecha null no rompe, deja el campo vacio");
+})();
+
+document.getElementById("out").innerHTML=lines.join("");
+document.getElementById("summary").innerHTML=
+  (fail===0?'<span class="pass">TODO OK — '+pass+' tests correctos</span>':'<span class="fail">'+fail+' FALLOS de '+(pass+fail)+' tests</span>');
+document.title=(fail===0?"OK ":"FALLO ")+pass+"/"+(pass+fail)+" — Tests";
+</script>
+</body>
+</html>

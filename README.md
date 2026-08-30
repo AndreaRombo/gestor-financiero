@@ -41,14 +41,27 @@ Cuando cambias la categoría o editas el concepto de un movimiento que vino de G
 
 Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola vez desde tu cuenta (sin pantallas de "app no verificada"), y la app le manda peticiones sin que nadie tenga que iniciar sesión con Google desde el navegador.
 
+**Importante sobre seguridad:** un Apps Script Web App con acceso "Cualquier usuario" es una URL pública — cualquiera que la consiguiera podría, en principio, mandarle peticiones. Por eso el script de abajo exige un **código secreto** que solo tú conoces (la app te lo genera y te lo enseña una vez) y limita qué filas/columnas se pueden tocar, para que ni con la URL filtrada se pueda escribir nada fuera de una selección de movimientos.
+
 **Cómo activarlo:**
 
 1. Abre tu Google Sheet → menú **Extensiones → Apps Script**.
 2. Borra el contenido de `Código.gs` y pega esto:
 
    ```javascript
+   var SECRET = "PEGA_AQUI_TU_CODIGO_SECRETO"; // te lo da la app al activar la escritura
+
    function doPost(e) {
      var body = JSON.parse(e.postData.contents);
+     if (body.secret !== SECRET) {
+       return ContentService.createTextOutput(JSON.stringify({error: "unauthorized"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
+     var row = Number(body.row), col = Number(body.col);
+     if (!(row >= 2 && row <= 5000 && col >= 1 && col <= 40)) {
+       return ContentService.createTextOutput(JSON.stringify({error: "out of range"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
      var ss = SpreadsheetApp.getActiveSpreadsheet();
      var sheet = null;
      var sheets = ss.getSheets();
@@ -59,7 +72,7 @@ Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola v
        return ContentService.createTextOutput(JSON.stringify({error: "sheet not found"}))
          .setMimeType(ContentService.MimeType.JSON);
      }
-     sheet.getRange(body.row, body.col).setValue(body.value);
+     sheet.getRange(row, col).setValue(String(body.value).slice(0, 500));
      return ContentService.createTextOutput(JSON.stringify({ok: true}))
        .setMimeType(ContentService.MimeType.JSON);
    }
@@ -71,7 +84,7 @@ Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola v
    - Quién tiene acceso: **Cualquier usuario**.
 5. Pulsa Implementar. Te pedirá autorizar el script para editar tus hojas — es un permiso tuyo, sobre tu propia hoja, un único clic de "Permitir".
 6. Copia la URL de la aplicación web (termina en `/exec`).
-7. En la app, botón **"🔗 Escritura Sheets"** en la cabecera → pega esa URL cuando te la pida.
+7. En la app, botón **"🔗 Escritura Sheets"** en la cabecera → pega esa URL cuando te la pida. Justo después te enseñará un código secreto: cópialo y sustituye `PEGA_AQUI_TU_CODIGO_SECRETO` en el script (paso 2), guarda, y vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Nueva versión → Implementar** para que el cambio surta efecto.
 
 A partir de ahí, cambiar una categoría en la app también la cambia en la hoja (columna Categoría/Tag y, si existe, Fijo/Variable). Editar un concepto actualiza la columna Concepto/Descripción. Los movimientos añadidos a mano en la app, o los importados desde un Excel local (no Sheets), no se escriben de vuelta a ningún sitio — solo aplica a filas que vinieron de una hoja de Sheets importada.
 
@@ -85,14 +98,25 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 
 ## Desarrollo / cómo contribuir
 
-- Es un único archivo HTML sin build ni dependencias que instalar. Para probar cambios en local, basta con abrir `index.html` con doble clic (o servirlo con cualquier servidor estático).
+- **`index.html`**: interfaz, estilos y la lógica que depende de la app (pestañas, render, Google Sheets, escritura). No tiene build ni dependencias que instalar.
+- **`lib.js`**: toda la lógica pura sin DOM — parseo de fechas/importes, categorización, CSV, extracción de enlaces de Sheets. Se carga antes que el script principal (`<script src="lib.js">`) y es lo que testea `tests.html`. Si tocas fechas, importes, CSV o categorización, casi seguro que el cambio va aquí, no en `index.html`.
+- **`tests.html`**: batería de tests de `lib.js`. Ábrelo en el navegador — pinta cada test en verde/rojo y un resumen arriba. No necesita servidor ni build: doble clic y listo.
+- Para probar cambios en local, basta con abrir `index.html` (o `tests.html`) con doble clic, o servirlos con cualquier servidor estático — deben estar en la misma carpeta que `lib.js` para que la ruta relativa `src="lib.js"` funcione.
 - Para publicar: `git commit` + `git push` a `main`. GitHub Pages despliega automáticamente en `https://andrearombo.github.io/gestor-financiero/` (tarda 1-2 minutos; si no ves el cambio, prueba un refresco forzado — Ctrl+Shift+R — porque el navegador puede cachear la versión anterior).
 - **Añadir un colaborador**: en GitHub, Settings del repo → Collaborators → Add people (con su usuario o email de GitHub). Un colaborador con acceso puede editar el código y hacer push, pero **no comparte automáticamente los datos financieros** — esos son locales de cada navegador (ver más arriba).
+- **Antes de publicar un cambio en `lib.js`**, abre `tests.html` y comprueba que sigue en verde. Si añades un formato de fecha/importe nuevo o una fuente de datos nueva, añade también su test — así queda protegido para siempre, no solo probado una vez a mano.
 
 ## Librerías externas
 
 - [SheetJS (xlsx)](https://cdnjs.cloudflare.com/ajax/libs/xlsx/) vía CDN — solo se usa para leer archivos `.xls` binarios reales (los disfrazados de HTML se leen sin ninguna librería, con `DOMParser`).
 - Google Fonts (Space Grotesk, Inter, JetBrains Mono).
+
+## Seguridad
+
+- **Todo el texto que viene de fuera** (concepto de un movimiento, nombre de categoría importado de Sheets, nombre de pestaña) se escapa con `esc()` antes de insertarse en la página — evita que una celda maliciosa o corrupta en la hoja compartida pueda ejecutar código en el navegador de quien la vea.
+- **Escritura hacia Sheets protegida por secreto**: el Apps Script exige un código que solo conoces tú y limita qué filas/columnas se pueden tocar (ver arriba) — la URL pública por sí sola no basta para escribir nada.
+- **Nunca se envían credenciales de Google** a ningún sitio: la lectura usa un enlace público de solo lectura, la escritura usa tu propio Apps Script autorizado por ti. No hay contraseñas ni tokens OAuth guardados en ningún sitio del código ni del repositorio.
+- Las URLs de Drive/Sheets que construye la app siempre las arma ella misma a partir de un ID validado por expresión regular (solo letras/números/guiones) — nunca hace fetch directo a una URL pegada por el usuario, así que no hay riesgo de que un enlace manipulado la mande a otro sitio.
 
 ## Limitaciones conocidas
 

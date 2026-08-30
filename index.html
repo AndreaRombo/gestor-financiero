@@ -321,6 +321,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   <button class="btn sm" onclick="undoDelete()">Deshacer</button>
 </div>
 
+<script src="lib.js"></script>
 <script>
 const BASE_CATS={
   ingresos:{label:"Nómina / Ingresos",color:"#34D399"},
@@ -345,68 +346,7 @@ function slugCat(s){
   while(CATS[id])id=base+"-"+(n++);
   return id;
 }
-const KEYS={
-  ingresos:["nomina","salario","paga","abono","ingreso","transferencia recibida","devolucion","reembolso","bizum recibido","finiquito","pension","dividendo","alquiler cobrado"],
-  supermercado:["mercadona","carrefour","lidl","aldi","dia ","eroski","alcampo","consum","supercor","hipercor","ahorramas","supermercado","fruteria","carniceria","panaderia","pescaderia"],
-  suministros:["iberdrola","endesa","naturgy","luz","agua","emasa","hidralia","gas natural","movistar","vodafone","orange","jazztel","yoigo","masmovil","pepephone","digi","telefonica","internet","fibra","comunidad","seguro hogar","ibi","basura"],
-  ocio:["restaurante","bar ","cafeteria","cafe ","glovo","just eat","uber eats","deliveroo","cine","teatro","tapas","bodega","cerveceria","pizzeria","burger","mcdonald","telepizza","domino","starbucks","chiringuito","discoteca","concierto","hotel","booking","airbnb"],
-  suscripciones:["netflix","spotify","disney","hbo","max ","prime video","amazon prime","dazn","filmin","movistar plus","apple.com","itunes","icloud","google one","youtube premium","adobe","microsoft 365","office 365","chatgpt","openai","canva","dropbox","gimnasio","basic fit","altafit"],
-  transporte:["gasolinera","cepsa","repsol","shell","bp ","galp","carburante","renfe","alsa","metro","emt","tussam","autobus","taxi","uber","cabify","bolt","parking","aparcamiento","peaje","itv","taller","revision","seguro coche"]
-};
-const eur=v=>new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(v);
-const strip=s=>String(s??"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-function parseAmount(v){
-  if(typeof v==="number")return isFinite(v)?v:NaN;
-  let s=String(v??"").trim();if(!s)return NaN;
-  let neg=false;
-  if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1);}
-  s=s.replace(/eur/gi,"").replace(/[€$£\s\u00a0]/g,"");
-  if(s.startsWith("-")){neg=true;s=s.slice(1);}else if(s.startsWith("+"))s=s.slice(1);
-  if(!/^[\d.,]+$/.test(s))return NaN;
-  const lc=s.lastIndexOf(","),ld=s.lastIndexOf(".");
-  if(lc>-1&&ld>-1)s=lc>ld?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
-  else if(lc>-1)s=/^\d{1,3}(,\d{3})+$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
-  else if(ld>-1&&/^\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,"");
-  const n=parseFloat(s);
-  return isFinite(n)?(neg?-n:n):NaN;
-}
-function serialToDate(n){
-  const d=new Date(Math.round((n-25569)*86400000));
-  return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
-}
-function parseDate(v,defaultYear){
-  if(v==null||v==="")return null;
-  if(v instanceof Date)return isNaN(v)?null:v;
-  if(typeof v==="number")return (v>20000&&v<60000)?serialToDate(v):null;
-  const s=String(v).trim();
-  if(/^\d{5}(\.\d+)?$/.test(s)){const n=+s;if(n>20000&&n<60000)return serialToDate(n);}
-  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-  m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
-  if(m){let y=+m[3];if(y<100)y+=2000;return new Date(y,+m[2]-1,+m[1]);}
-  if(defaultYear){
-    m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
-    if(m)return new Date(defaultYear,+m[2]-1,+m[1]);
-    m=s.match(/^(\d{1,2})[\s-]+([a-zñ]{3,})\.?$/i);
-    if(m){
-      const mi=MES.indexOf(strip(m[2]).slice(0,3));
-      if(mi>-1)return new Date(defaultYear,mi,+m[1]);
-    }
-  }
-  const d=new Date(s);
-  return isNaN(d)?null:d;
-}
-function categorize(concepto,importe){
-  const s=strip(concepto);
-  let best=null,len=0;
-  for(const [cat,words] of Object.entries(KEYS))
-    for(const w of words)
-      if(s.includes(w)&&w.length>len){best=cat;len=w.length;}
-  if(best)return best;
-  return importe>0?"ingresos":"varios";
-}
+/* strip, eur, MES, KEYS, parseAmount, serialToDate, parseDate, categorize: ver lib.js */
 
 let rows=[],fileName="",month="all",active=new Set(),selected=new Set(),sort={key:"fecha",dir:"desc"},cutoff=1,undoBuf=null,undoTimer=null,uid=0,catTouched=false,tipo="gasto",catTipoSel="variable";
 let boards=[],currentBoardId=null;
@@ -699,21 +639,7 @@ async function xlsToMatrix(buf){
   return XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:null});
 }
 
-/* ---------- CSV ---------- */
-function splitLine(line){
-  const out=[];let cur="",q=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; }
-    else if((c===","||c===";"||c==="\t")&&!q){out.push(cur);cur="";}
-    else cur+=c;
-  }
-  out.push(cur);
-  return out.map(s=>s.trim().replace(/^"|"$/g,""));
-}
-function csvToMatrix(text){
-  return text.split(/\r?\n/).filter(l=>l.trim()).map(splitLine);
-}
+/* splitLine, csvToMatrix: ver lib.js */
 
 /* ---------- carga ---------- */
 function pickFile(){document.getElementById("file").click();}
@@ -751,53 +677,7 @@ function onFile(f){
     rd.readAsText(f,"utf-8");
   }
 }
-function sig(r){return (r.fecha?r.fecha.toISOString().slice(0,10):"")+"|"+strip(r.concepto)+"|"+r.importe.toFixed(2);}
-
-function categorySlug(name){
-  return strip(name).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"cat";
-}
-function guessColumns(matrix,defaultYear){
-  const n=Math.min(matrix.length,40);
-  const ncols=Math.max(0,...matrix.slice(0,n).map(r=>(r||[]).length));
-  let bestF=-1,bestFScore=0;
-  for(let col=0;col<ncols;col++){
-    let hits=0,total=0;
-    for(let i=0;i<n;i++){
-      const v=(matrix[i]||[])[col];
-      if(v==null||v==="")continue;
-      total++;
-      if(parseDate(v,defaultYear))hits++;
-    }
-    if(total>=3&&hits/total>0.6&&hits>bestFScore){bestFScore=hits;bestF=col;}
-  }
-  if(bestF===-1)return null;
-  let bestA=-1,bestAScore=0;
-  for(let col=0;col<ncols;col++){
-    if(col===bestF)continue;
-    let hits=0,total=0;
-    for(let i=0;i<n;i++){
-      const v=(matrix[i]||[])[col];
-      if(v==null||v==="")continue;
-      total++;
-      if(!isNaN(parseAmount(v)))hits++;
-    }
-    if(total>=3&&hits/total>0.6&&hits>bestAScore){bestAScore=hits;bestA=col;}
-  }
-  if(bestA===-1)return null;
-  let bestC=-1,bestLen=0;
-  for(let col=0;col<ncols;col++){
-    if(col===bestF||col===bestA)continue;
-    let len=0,total=0;
-    for(let i=0;i<n;i++){
-      const v=(matrix[i]||[])[col];
-      if(v==null||v==="")continue;
-      total++;len+=String(v).length;
-    }
-    if(total>=3&&len>bestLen){bestLen=len;bestC=col;}
-  }
-  if(bestC===-1)return null;
-  return {f:bestF,c:bestC,a:bestA,cargo:-1,abono:-1,cat:-1,fj:-1,noHeader:true};
-}
+/* sig, categorySlug, guessColumns: ver lib.js */
 function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
   ensureBoard();
   if(!matrix||matrix.length<2)throw new Error("El archivo parece vacío.");
@@ -878,22 +758,7 @@ function ingestMatrix(matrix,name,defaultYear,forceExpense,srcMeta){
 }
 
 /* ---------- Google Sheets (enlace compartido) ---------- */
-function extractSheetInfo(link){
-  const m=String(link||"").match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if(!m)return null;
-  const g=link.match(/[?&#]gid=(\d+)/);
-  return {id:m[1],gid:g?g[1]:"0"};
-}
-function tabDateContext(title){
-  const s=strip(title);
-  const ym=s.match(/(20\d{2})/);
-  const year=ym?+ym[1]:null;
-  let month=null;
-  for(let i=0;i<MES.length;i++){
-    if(s.includes(MES[i])){month=i+1;break;}
-  }
-  return {month,year:year||(month?(month>=9?2025:2026):2026)};
-}
+/* extractSheetInfo, tabDateContext: ver lib.js */
 async function driveDiscoverTabs(id){
   try{
     const res=await fetch("https://docs.google.com/spreadsheets/d/"+id+"/edit");
@@ -956,17 +821,31 @@ async function importFromDrive(){
 }
 function setupWriteUrl(){
   const url=prompt('¿Quieres que los cambios de categoría/concepto que hagas en la app se guarden también en tu Google Sheet?\n\nPega aquí la URL de tu Apps Script Web App (ver README para cómo crearla), o deja esto vacío y pulsa Aceptar para no activarlo:');
-  localStorage.setItem("fin:writeurl",(url&&url.trim())?url.trim():"");
+  const trimmed=(url&&url.trim())?url.trim():"";
+  if(trimmed&&!/^https:\/\/script\.google\.com\/macros\/s\/[^\/\s]+\/exec$/.test(trimmed)){
+    banner("Esa URL no parece una implementación de Apps Script válida (debe empezar por https://script.google.com/macros/s/... y acabar en /exec). No se ha activado la escritura.","err",11000);
+    return;
+  }
+  localStorage.setItem("fin:writeurl",trimmed);
+  if(trimmed){
+    let secret=localStorage.getItem("fin:writesecret");
+    if(!secret){
+      secret=(crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2);
+      localStorage.setItem("fin:writesecret",secret);
+    }
+    prompt("Copia este código secreto y pégalo en la constante SECRET de tu Apps Script (ver README). Sin esto, nadie podrá escribir en tu hoja aunque descubra la URL:",secret);
+  }
 }
 async function writeBackCell(gid,row,col,value){
   const url=localStorage.getItem("fin:writeurl");
+  const secret=localStorage.getItem("fin:writesecret");
   if(!url||!col)return;
   try{
     await fetch(url,{
       method:"POST",
       mode:"no-cors",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({action:"setCell",gid,row,col,value})
+      body:JSON.stringify({action:"setCell",gid,row,col,value,secret})
     });
   }catch(e){}
 }
@@ -1009,7 +888,7 @@ function openForm(){
   document.getElementById("fImporte").value="";
   document.getElementById("fFecha").valueAsDate=new Date();
   const sel=document.getElementById("fCat");
-  sel.innerHTML=Object.entries(CATS).map(([k,v])=>'<option value="'+k+'">'+v.label+'</option>').join("");
+  sel.innerHTML=Object.entries(CATS).map(([k,v])=>'<option value="'+k+'">'+esc(v.label)+'</option>').join("");
   sel.value="varios";
   document.getElementById("overlay").classList.add("on");
   setTimeout(()=>document.getElementById("fConcepto").focus(),50);
@@ -1122,23 +1001,13 @@ function show(){
   document.getElementById("sub").textContent=fileName?fileName+" · "+rows.length+" movimientos":rows.length+" movimientos";
   render();
 }
-function monthKey(d){
-  if(!d)return "sin-fecha";
-  let y=d.getFullYear(),m=d.getMonth();
-  if(cutoff>1&&d.getDate()>=cutoff){m++;if(m>11){m=0;y++;}}
-  return y+"-"+String(m+1).padStart(2,"0");
-}
+/* monthKey, monthLabel: ver lib.js (monthKey ahora recibe el cutoff como argumento) */
 function setCutoff(v){
   const n=parseInt(v,10);
   cutoff=(isFinite(n)&&n>=1&&n<=31)?n:1;
   save();render();
 }
-function monthLabel(k){
-  if(k==="sin-fecha")return "s/f";
-  const [y,m]=k.split("-");
-  return MES[+m-1]+" "+y.slice(2);
-}
-function scopedRows(){return month==="all"?rows:rows.filter(r=>monthKey(r.fecha)===month);}
+function scopedRows(){return month==="all"?rows:rows.filter(r=>monthKey(r.fecha,cutoff)===month);}
 
 function render(){
   renderTabs();
@@ -1167,7 +1036,7 @@ function renderEmpty(){
 function renderMonths(){
   const map=new Map();
   rows.forEach(r=>{
-    const k=monthKey(r.fecha);
+    const k=monthKey(r.fecha,cutoff);
     if(!map.has(k))map.set(k,{ing:0,gas:0});
     const o=map.get(k);
     r.importe>=0?o.ing+=r.importe:o.gas+=-r.importe;
@@ -1208,7 +1077,7 @@ function renderBreakdown(sc){
   document.getElementById("breakdown").innerHTML=arr.length?arr.map(c=>
     '<button class="brow '+(active.has(c.id)?"on":"")+'" onclick="toggleCat(\''+c.id+'\')">'+
     '<div class="bhead"><span class="dot" style="background:'+c.color+'"></span>'+
-    '<span class="bname">'+c.label+(c.tipo?'<span class="tag '+c.tipo+'">'+(c.tipo==="fijo"?"Fijo":"Variable")+'</span>':'')+'</span>'+
+    '<span class="bname">'+esc(c.label)+(c.tipo?'<span class="tag '+c.tipo+'">'+(c.tipo==="fijo"?"Fijo":"Variable")+'</span>':'')+'</span>'+
     '<span class="bamt num">'+eur(c.total)+'</span>'+
     '<span class="bpct num">'+Math.round(c.total/sum*100)+'%</span></div>'+
     '<div class="btrack"><div class="bfill" style="width:'+(c.total/max*100)+'%;background:'+c.color+'"></div></div></button>'
@@ -1222,7 +1091,7 @@ function renderChips(sc){
   sc.forEach(r=>counts.set(r.categoria,(counts.get(r.categoria)||0)+1));
   document.getElementById("chips").innerHTML=Object.entries(CATS).filter(([k])=>counts.has(k)).map(([k,v])=>
     '<button class="chip '+(active.has(k)?"on":"")+'" style="'+(active.has(k)?"border-color:"+v.color:"")+'" onclick="toggleCat(\''+k+'\')">'+
-    '<span class="chipdot" style="background:'+v.color+'"></span>'+v.label+' <span style="color:var(--faint)">'+counts.get(k)+'</span></button>'
+    '<span class="chipdot" style="background:'+v.color+'"></span>'+esc(v.label)+' <span style="color:var(--faint)">'+counts.get(k)+'</span></button>'
   ).join("")+(active.size?'<button class="chip" onclick="active.clear();render()">Limpiar filtros</button>':"");
 }
 
@@ -1305,7 +1174,7 @@ function renderBulkBar(){
   el.innerHTML=
     '<span>'+selected.size+' seleccionado'+(selected.size===1?"":"s")+'</span>'+
     '<select id="bulkCat" class="cat"><option value="">Cambiar categoría a…</option>'+
-      Object.entries(CATS).map(([k,v])=>'<option value="'+k+'">'+v.label+'</option>').join("")+
+      Object.entries(CATS).map(([k,v])=>'<option value="'+k+'">'+esc(v.label)+'</option>').join("")+
     '</select>'+
     '<button class="btn sm primary" onclick="applyBulkCategory()">Aplicar</button>'+
     (others.length?
@@ -1323,7 +1192,7 @@ function renderList(sc){
   document.getElementById("summary").innerHTML=list.length+" de "+sc.length+" movimientos · suma "+eur(sum)+
     (list.length?' · <button class="btn sm ghost" onclick="toggleSelectAll(true)">Seleccionar todo</button>':"");
   renderBulkBar();
-  const opts=r=>Object.entries(CATS).map(([k,v])=>'<option value="'+k+'"'+(r.categoria===k?" selected":"")+'>'+v.label+'</option>').join("");
+  const opts=r=>Object.entries(CATS).map(([k,v])=>'<option value="'+k+'"'+(r.categoria===k?" selected":"")+'>'+esc(v.label)+'</option>').join("");
   const fmt=r=>r.fecha?r.fecha.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"—";
 
   if(!list.length){
