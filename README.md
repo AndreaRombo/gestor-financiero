@@ -45,11 +45,16 @@ Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola v
 
 **Cómo activarlo:**
 
-1. Abre tu Google Sheet → menú **Extensiones → Apps Script**.
-2. Borra el contenido de `Código.gs` y pega esto:
+Hay dos caminos para crear el script — usa el que te funcione:
+
+- **Camino normal**: abre tu Google Sheet → menú **Extensiones → Apps Script**.
+- **Si no ves "Extensiones"** en la barra de menús (pasa a veces, sin razón clara): ve directamente a **[script.new](https://script.new)** (o [script.google.com/create](https://script.google.com/create)) en una pestaña nueva, con la misma cuenta de Google. Esto crea un proyecto de Apps Script "suelto" (no hace falta pasarlo por el menú de la hoja) — usa el código de abajo, que ya abre la hoja por su ID en vez de depender de "la hoja donde vive el script".
+
+1. Borra el contenido de `Código.gs` y pega esto (cambia `TU_ID_DE_HOJA` por el ID de tu hoja — es la parte de la URL entre `/d/` y `/edit`, algo como `1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8`):
 
    ```javascript
    var SECRET = "PEGA_AQUI_TU_CODIGO_SECRETO"; // te lo da la app al activar la escritura
+   var SHEET_ID = "TU_ID_DE_HOJA"; // el ID de tu Google Sheet (de la URL, entre /d/ y /edit)
 
    function doPost(e) {
      var body = JSON.parse(e.postData.contents);
@@ -62,7 +67,7 @@ Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola v
        return ContentService.createTextOutput(JSON.stringify({error: "out of range"}))
          .setMimeType(ContentService.MimeType.JSON);
      }
-     var ss = SpreadsheetApp.getActiveSpreadsheet();
+     var ss = SpreadsheetApp.openById(SHEET_ID);
      var sheet = null;
      var sheets = ss.getSheets();
      for (var i = 0; i < sheets.length; i++) {
@@ -77,6 +82,8 @@ Esto usa un **Google Apps Script** propio, no OAuth: lo autorizas tú una sola v
        .setMimeType(ContentService.MimeType.JSON);
    }
    ```
+
+   (Si usaste el camino normal desde **Extensiones → Apps Script**, también puedes dejar `SpreadsheetApp.getActiveSpreadsheet()` en vez de `openById` — ambas funcionan igual estando dentro de la hoja, pero `openById` funciona siempre, vengas por donde vengas.)
 
 3. Guarda el proyecto (ponle un nombre, p. ej. "GestorFinancieroAPI").
 4. **Implementar → Nueva implementación** → tipo **Aplicación web**.
