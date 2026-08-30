@@ -71,6 +71,9 @@ assertEqual(categorize("NOMINA ADECCO GROUP",2480),"ingresos","categorize nomina
 assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",-20),"varios","categorize gasto desconocido -> varios");
 assertEqual(categorize("ALGO RARO SIN PALABRA CLAVE",20),"ingresos","categorize positivo desconocido -> ingresos (por signo)");
 assertEqual(categorize("REPSOL E.S. FUENGIROLA",-60),"transporte","categorize gasolinera -> transporte");
+assertEqual(categorize("RECIBO IBERDROLA CLIENTES",-78),"suministros","categorize Iberdrola -> suministros");
+assertEqual(categorize("RESTAURANTE LA TERRAZA",-45),"ocio","categorize restaurante -> ocio");
+assertEqual(categorize("UBER EATS PEDIDO 23:45",-22),"ocio","categorize keyword mas larga gana el empate (uber eats > uber)");
 
 /* ---------- categorySlug ---------- */
 assertEqual(categorySlug("Hipoteca"),"hipoteca","categorySlug basico");
