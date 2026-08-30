@@ -6,6 +6,8 @@ Aplicación web de finanzas personales: importa extractos bancarios y hojas de G
 
 **Diseño y accesibilidad:** ver [UX_AUDIT.md](UX_AUDIT.md) — auditoría UX/UI con hallazgos medidos (no solo a ojo), qué se corrigió y qué queda pendiente de decidir.
 
+**Documentación técnica (arquitectura, decisiones, cómo está montado por dentro):** ver [docs/TECHNICAL.md](docs/TECHNICAL.md).
+
 ## Qué hace
 
 - **Importa extractos** en Excel (`.xlsx`, `.xlsm`, `.xls` — incluidos los `.xls` que en realidad son una tabla HTML, muy típico de la banca online) y CSV.
@@ -20,12 +22,12 @@ Aplicación web de finanzas personales: importa extractos bancarios y hojas de G
 
 ## Cómo funciona por dentro (importante)
 
-Todo el código —HTML, CSS y JavaScript— vive en un único archivo: **`index.html`**. No hay servidor propio, ni base de datos, ni backend de ningún tipo.
-
-Los datos (movimientos, categorías, pestañas) se guardan en el **`localStorage` del navegador**, bajo la clave `fin:v2`. Esto tiene dos consecuencias importantes:
+No hay servidor propio, ni base de datos, ni backend de ningún tipo. Los datos (movimientos, categorías, pestañas) se guardan en el **`localStorage` del navegador**. Esto tiene dos consecuencias importantes:
 
 - **Los datos no se sincronizan entre personas ni entre dispositivos.** Cada persona que abre la app en su propio navegador tiene su propia copia, vacía al principio. Si tu marido abre la misma URL en su móvil, no verá tus movimientos — tendría que importar sus propios datos ahí.
 - **Nadie más puede ver esos datos**: no salen del navegador salvo cuando tú decides leer una hoja de Google Sheets que hayas compartido por enlace. No hay copia de seguridad automática — si borras el historial del navegador o cambias de ordenador, pierdes lo guardado (puedes volver a importar el extracto o la hoja cuando quieras).
+
+Cómo está construido por dentro (arquitectura, estructura de datos, parseo de archivos, seguridad): ver [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
 ## Importar desde Google Sheets
 
@@ -99,12 +101,6 @@ A partir de ahí, cambiar una categoría en la app también la cambia en la hoja
 
 Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue funcionando igual, solo que los cambios se quedan solo en tu navegador.
 
-## Estructura de datos
-
-- **Pestaña (board)**: `{ id, name, fileName, rows, customCats, active, sort }`
-- **Movimiento (row)**: `{ id, fecha, concepto, importe, categoria, manual, añadido, src? }` — `importe` negativo es gasto, positivo es ingreso. `src` (`{ gid, row, catCol, fjCol, cCol }`) solo existe si el movimiento vino de Google Sheets, y es lo que permite escribir cambios de vuelta a la celda original.
-- **Categoría**: built-in (`BASE_CATS`) + personalizadas por pestaña (`customCats`), cada una con `{ label, color, tipo }` donde `tipo` es `"fijo"` o `"variable"`.
-
 ## Desarrollo / cómo contribuir
 
 - **`index.html`**: interfaz, estilos y la lógica que depende de la app (pestañas, render, Google Sheets, escritura). No tiene build ni dependencias que instalar.
@@ -117,17 +113,9 @@ Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue f
 - **Skill de Claude Code**: `.claude/skills/sdd/SKILL.md` documenta la metodología Spec-Driven Development que sigue el equipo (cuándo definir spec/plan técnico antes de programar, reglas de oro, checklist antes de hacer push). Se carga automáticamente al usar Claude Code en este repo.
 - **`CLAUDE.md`** (en la raíz): instrucciones que Claude Code lee en cada sesión de este repo — checklist de cierre, reglas críticas (no tocar claves de `localStorage`, siempre rama+PR, etc.) y convenciones de código reales del proyecto.
 
-## Librerías externas
-
-- [SheetJS (xlsx)](https://cdnjs.cloudflare.com/ajax/libs/xlsx/) vía CDN — solo se usa para leer archivos `.xls` binarios reales (los disfrazados de HTML se leen sin ninguna librería, con `DOMParser`).
-- Google Fonts (Space Grotesk, Inter, JetBrains Mono).
-
 ## Seguridad
 
-- **Todo el texto que viene de fuera** (concepto de un movimiento, nombre de categoría importado de Sheets, nombre de pestaña) se escapa con `esc()` antes de insertarse en la página — evita que una celda maliciosa o corrupta en la hoja compartida pueda ejecutar código en el navegador de quien la vea.
-- **Escritura hacia Sheets protegida por secreto**: el Apps Script exige un código que solo conoces tú y limita qué filas/columnas se pueden tocar (ver arriba) — la URL pública por sí sola no basta para escribir nada.
-- **Nunca se envían credenciales de Google** a ningún sitio: la lectura usa un enlace público de solo lectura, la escritura usa tu propio Apps Script autorizado por ti. No hay contraseñas ni tokens OAuth guardados en ningún sitio del código ni del repositorio.
-- Las URLs de Drive/Sheets que construye la app siempre las arma ella misma a partir de un ID validado por expresión regular (solo letras/números/guiones) — nunca hace fetch directo a una URL pegada por el usuario, así que no hay riesgo de que un enlace manipulado la mande a otro sitio.
+Nunca se envían credenciales de Google a ningún sitio, todo el texto que viene de fuera se escapa antes de insertarse en la página (evita XSS), y la escritura a Sheets está protegida por un código secreto propio. Detalle completo en [docs/TECHNICAL.md](docs/TECHNICAL.md#seguridad).
 
 ## Historial de cambios
 
@@ -135,6 +123,7 @@ Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Limitaciones conocidas
 
+- **"Desde Google Sheets" solo funciona con Hojas de Cálculo de Google nativas** (URL con `/spreadsheets/d/...`). Un archivo Excel subido a Google Drive sin convertir a Sheets (URL de Drive con `/file/d/...`) no se reconoce — hay que abrirlo en Drive y "Guardar como Hojas de cálculo de Google" primero, o descargarlo e importarlo como archivo local (Excel/CSV).
 - La detección automática de todas las pestañas de Google Sheets depende de leer la página de edición pública y buscar un patrón dentro de su HTML interno; es una técnica no oficial que Google podría cambiar en el futuro. Si deja de funcionar, seguirá funcionando la importación de una sola pestaña (la del enlace pegado).
 - Sin backend, no hay multiusuario real ni sincronización entre dispositivos.
 - Los años inferidos para fechas sin año en pestañas sin nombre de mes (p. ej. "Reforma cuarto") son una suposición razonable, no una certeza — conviene revisarlos tras importar.

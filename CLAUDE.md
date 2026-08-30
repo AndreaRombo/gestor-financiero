@@ -9,7 +9,7 @@
 - **App:** single archivo `index.html` (HTML + CSS + JS) + `lib.js` (lógica pura sin DOM) + `localStorage` del navegador. Sin backend, sin build, sin dependencias que instalar.
 - **Tests:** `tests.html` — ábrelo en el navegador, no hace falta servidor ni build. No hay suite en Python/Playwright en este repo.
 - **Control de versiones:** Git + GitHub, rama `main` protegida por Pull Request (ver README, sección "Desarrollo / cómo contribuir").
-- **Documentación:** `README.md` (descripción, arquitectura, estructura de datos) + `CHANGELOG.md` (historial) + `UX_AUDIT.md` (hallazgos de diseño/accesibilidad).
+- **Documentación:** `README.md` (qué hace la app y cómo usarla/contribuir) + `docs/TECHNICAL.md` (arquitectura, decisiones técnicas, estructura de datos) + `CHANGELOG.md` (historial) + `UX_AUDIT.md` (hallazgos de diseño/accesibilidad) + `docs/sdd/` (specs/planes aprobados de la metodología SDD).
 - **Metodología SDD:** ver la skill `.claude/skills/sdd/SKILL.md` para el flujo completo (cuándo definir spec/plan técnico antes de programar, dimensionamiento de specs, reglas de oro). Este archivo se centra en el checklist de cierre y las reglas críticas específicas de este repo.
 
 ---
@@ -25,8 +25,8 @@ Abre `tests.html` en el navegador. Deben pasar **todos** (resumen verde arriba) 
 - Verificar modo claro y oscuro
 - Verificar que nada anterior se rompió (sobre todo si tocas `index.html`)
 
-### 3. Actualizar README.md si hay cambios de arquitectura
-Estructura de datos, claves de `localStorage`, o dónde vive cada botón en la interfaz (la sección "Desarrollo / cómo contribuir" y "Estructura de datos" deben seguir siendo ciertas).
+### 3. Actualizar la documentación si hay cambios de arquitectura
+`docs/TECHNICAL.md` si cambia la estructura de datos, una clave de `localStorage`, o cómo funciona algo por dentro. `README.md` si cambia dónde vive un botón en la interfaz o cómo se usa una funcionalidad.
 
 ### 4. Actualizar CHANGELOG.md
 Añadir una entrada bajo la fecha de hoy con una frase corta describiendo el cambio.
@@ -100,7 +100,7 @@ color: #1a1a1a;
 ☐ tests.html en verde (X/X tests correctos)
 ☐ Probado en el navegador en incógnito
 ☐ Modo oscuro/claro funciona si aplica
-☐ README.md actualizado si hay cambios de arquitectura o de dónde vive algo en la UI
+☐ docs/TECHNICAL.md actualizado si hay cambios de arquitectura; README.md si cambia algo de la UI
 ☐ CHANGELOG.md tiene la entrada de hoy
 ☐ Commit message en formato semántico (feat/fix/docs/refactor)
 ☐ No hay claves de API, secretos ni tokens en el código
