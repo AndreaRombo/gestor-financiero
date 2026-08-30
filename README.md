@@ -54,7 +54,7 @@ Hay dos caminos para crear el script — usa el que te funcione:
 - **Camino normal**: abre tu Google Sheet → menú **Extensiones → Apps Script**.
 - **Si no ves "Extensiones"** en la barra de menús (pasa a veces, sin razón clara): ve directamente a **[script.new](https://script.new)** (o [script.google.com/create](https://script.google.com/create)) en una pestaña nueva, con la misma cuenta de Google. Esto crea un proyecto de Apps Script "suelto" (no hace falta pasarlo por el menú de la hoja) — usa el código de abajo, que ya abre la hoja por su ID en vez de depender de "la hoja donde vive el script".
 
-1. Borra el contenido de `Código.gs` y pega esto (cambia `TU_ID_DE_HOJA` por el ID de tu hoja — es la parte de la URL entre `/d/` y `/edit`, algo como `1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8`):
+1. Borra el contenido de `Código.gs` y pega esto (cambia `TU_ID_DE_HOJA` por el ID de tu hoja — es la parte de la URL entre `/d/` y `/edit`, algo como `1FAKE_TEST_SHEET_ID_0000000000000`):
 
    ```javascript
    var SECRET = "PEGA_AQUI_TU_CODIGO_SECRETO"; // te lo da la app al activar la escritura
