@@ -95,7 +95,7 @@ Hay dos caminos para crear el script — usa el que te funcione:
    - Quién tiene acceso: **Cualquier usuario**.
 5. Pulsa Implementar. Te pedirá autorizar el script para editar tus hojas — es un permiso tuyo, sobre tu propia hoja, un único clic de "Permitir".
 6. Copia la URL de la aplicación web (termina en `/exec`).
-7. En la app, desplegable **⚙ ▾** de la cabecera → **"🔗 Escritura en Sheets"** → pega esa URL cuando te la pida. Justo después te enseñará un código secreto: cópialo y sustituye `PEGA_AQUI_TU_CODIGO_SECRETO` en el script (paso 2), guarda, y vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Nueva versión → Implementar** para que el cambio surta efecto.
+7. En la app, desplegable **⚙ ▾** de la cabecera → **"🔗 Escritura en Sheets"** → se abre un cuadro donde pegas esa URL y pulsas **Guardar**. Justo después el mismo cuadro cambia y te enseña el código secreto con un botón **Copiar** — pégalo en `PEGA_AQUI_TU_CODIGO_SECRETO` del script (paso 2), guarda, y vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Nueva versión → Implementar** para que el cambio surta efecto. (Puedes volver a abrir este mismo cuadro cuando quieras para ver el secreto de nuevo o desactivar la escritura dejando la URL vacía y guardando.)
 
 A partir de ahí, cambiar una categoría en la app también la cambia en la hoja (columna Categoría/Tag y, si existe, Fijo/Variable). Editar un concepto actualiza la columna Concepto/Descripción. Los movimientos añadidos a mano en la app, o los importados desde un Excel local (no Sheets), no se escriben de vuelta a ningún sitio — solo aplica a filas que vinieron de una hoja de Sheets importada.
 
