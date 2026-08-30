@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Mantenimiento: deduplicar el bloque de escritura a Google Sheets (nuevo helper `writeBackCategoryChange`), corregir doble-click en "Desde Google Sheets" de la pantalla de aterrizaje, completar tests de `categorize()` (suministros, ocio, desempate de keywords), y eliminar el código de licencia Pro (Gumroad) de `lib.js` — nunca llegó a tener interfaz conectada, quedaba como código muerto con sus 7 tests.
 - Añadir skill de Claude Code (`.claude/skills/sdd/`) con la metodología de trabajo Spec-Driven Development del equipo.
 - UX: agrupar las acciones de la cabecera en menús desplegables ("Importar", "⚙") con accesibilidad ARIA y cierre por teclado/clic fuera.
 - Eliminar `index (1).html` e `index_actualizado.html`, duplicados subidos por error.
