@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Seguridad: sustituir el ID real de una hoja de Google Sheets (usado por error como dato de ejemplo en `tests.html` y el README) por uno inventado. Ese ID correspondía a una hoja compartida "cualquiera con el enlace puede ver" con datos financieros reales — quedaba accesible para cualquiera que leyera el código público del repo. La hoja real debe rotarse (compartir una copia nueva) porque el ID viejo sigue en el historial de git.
 - Fix: el modal de "Escritura en Sheets" ya no se cierra al hacer clic fuera de él — este flujo obliga a cambiar de pestaña (para copiar la URL, luego el secreto en Apps Script) y era fácil que un clic accidental al volver lo cerrara sin avisar.
 - Fix: sustituir los dos `prompt()` encadenados de "Escritura en Sheets" por un modal propio en la app — los navegadores pueden bloquear en silencio los popups nativos repetidos, haciendo que el del código secreto pareciera "desaparecer". El modal nuevo tampoco depende de eso, y añade botón de copiar.
 - Fix: avisar con un mensaje claro cuando se intenta importar desde Google Sheets abriendo `index.html` directamente (`file://`) — Google bloquea esas peticiones por CORS y antes fallaba con el mensaje genérico de "no se pudo leer la hoja", sin explicar por qué. Documentado cómo probar esta función en local (servidor estático, no doble clic).

@@ -89,13 +89,13 @@ assertEqual(csvToMatrix("a;b;c")[0],["a","b","c"],"csvToMatrix separador punto y
 
 /* ---------- extractSheetInfo ---------- */
 assertEqual(
-  extractSheetInfo("https://docs.google.com/spreadsheets/d/1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8/edit?gid=1147717476#gid=1147717476"),
-  {id:"1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8",gid:"1147717476"},
+  extractSheetInfo("https://docs.google.com/spreadsheets/d/1FAKE_TEST_SHEET_ID_0000000000000/edit?gid=1147717476#gid=1147717476"),
+  {id:"1FAKE_TEST_SHEET_ID_0000000000000",gid:"1147717476"},
   "extractSheetInfo con gid en query y hash"
 );
 assertEqual(
-  extractSheetInfo("https://docs.google.com/spreadsheets/d/1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8/edit?usp=sharing"),
-  {id:"1xcZCC_fu2-jvvcVoFaqmdzC7ZiJhgzx8",gid:"0"},
+  extractSheetInfo("https://docs.google.com/spreadsheets/d/1FAKE_TEST_SHEET_ID_0000000000000/edit?usp=sharing"),
+  {id:"1FAKE_TEST_SHEET_ID_0000000000000",gid:"0"},
   "extractSheetInfo sin gid cae a '0'"
 );
 assertNull(extractSheetInfo("https://example.com/no-es-una-hoja"),"extractSheetInfo con URL invalida da null");
