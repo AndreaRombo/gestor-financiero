@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Fix: el enlace para compartir la configuración de Sheets podía generarse sin la lista de pestañas dentro (dejando al otro dispositivo con una sola pestaña genérica "Google Sheets"), si en ese navegador no se había disparado antes una sincronización con el código nuevo. Ahora el enlace calcula la lista de pestañas directamente del estado actual de la app en el momento de generarlo, sin depender de una sincronización previa. Quien generó un enlace antes de este cambio debe generarlo de nuevo.
 - Fix: al sincronizar desde un dispositivo nuevo (p. ej. el móvil, tras abrir el enlace de configuración) podía aparecer una pestaña duplicada que no existía en el ordenador. Causa: las pestañas de Sheets se emparejaban por el nombre extraído por scraping del HTML de Google, que puede variar ligeramente entre sincronizaciones; ahora se emparejan por el `gid` (ID estable de Google), no por nombre.
 - Docs: detallar en la skill `sdd` el flujo completo paso a paso cuando hace falta spec (Research → Planner → TechPlan → implementar → documentar), explicitando que `docs/TECHNICAL.md` se lee antes de diseñar el enfoque técnico y se actualiza después, no solo una de las dos.
 - Docs: afinar en la skill `sdd` el criterio de cuándo hace falta un spec-N — no "si parece pequeño", sino si el cambio introduce UI/flujo nuevo o hubo que elegir entre varios enfoques.
