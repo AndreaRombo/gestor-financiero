@@ -87,6 +87,46 @@ un enfoque viable?
 
 Ejemplo real de esta regla en acción (2026-08-30): el modal de "Escritura en Sheets" (PR #8) era UI nueva con una decisión real entre enfoques (modal propio vs. otras alternativas) y se implementó sin spec — la decisión y su porqué solo quedaron en la conversación, no en el repo. En cambio, el aviso de `file://`, que el modal no se cerrara al clic fuera, o sustituir un ID filtrado, sí eran bugs con causa clara y fue correcto ir directos al fix.
 
+### Flujo completo paso a paso, cuando sí hace falta spec
+
+```
+0. Research (SOLO si hay incertidumbre real — territorio nuevo,
+   no tienes claro qué existe ya)
+   → leer código relevante, docs/TECHNICAL.md, README
+   → si ya conoces el terreno, SALTAR directo al paso 1
+
+1. Planner — el QUÉ y el POR QUÉ
+   → qué se construye, para quién, criterios de aceptación
+   → sin detalles técnicos todavía
+
+2. TechPlan — el CÓMO
+   → aquí es donde se LEE docs/TECHNICAL.md de verdad: qué
+     patrones ya existen que se puedan reutilizar (p. ej. antes
+     de construir un modal nuevo, mirar cómo están hechos los
+     modales existentes), qué NO tocar
+   → arquitectura técnica, lista de tareas numeradas
+   → en specs pequeños esto se queda dentro del mismo
+     spec-N.md; en uno grande, tech-plan-N.md aparte
+
+3. Aprobar el plan con la usuaria (ExitPlanMode) → copiar a
+   docs/sdd/spec-N-nombre.md
+
+4. Rama nueva (nunca main directo) → implementar → tests si
+   toca lib.js → verificar de verdad en el navegador
+
+5. Actualizar documentación — aquí docs/TECHNICAL.md cumple el
+   rol contrario al paso 0/2: ya no se LEE para informarse, se
+   ACTUALIZA para reflejar el nuevo estado real (así el próximo
+   Research, tuyo o de otra persona, parte de información
+   correcta). README.md si cambió cómo se usa algo. CHANGELOG.md
+   siempre.
+
+6. Commits separados por tipo → push → PR → review → merge →
+   sync (git pull) antes de la siguiente tarea
+```
+
+`docs/TECHNICAL.md` se toca dos veces con propósitos opuestos en este flujo: se *lee* en los pasos 0/2 para no reinventar algo que ya existe, y se *actualiza* en el paso 5 para que quede al día. Si se salta la actualización, el próximo Research parte de documentación desfasada.
+
 ---
 
 ## Las 4 fases — referencia rápida
