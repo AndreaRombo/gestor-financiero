@@ -101,6 +101,8 @@ A partir de ahí, cambiar una categoría en la app también la cambia en la hoja
 
 Si prefieres no activarlo, deja el campo vacío al pedírtelo — la app sigue funcionando igual, solo que los cambios se quedan solo en tu navegador.
 
+**Si cambias una categoría y no ves confirmación, o ves un aviso rojo de error**: la app ahora te dice explícitamente si la escritura en Sheets falló y por qué (antes fallaba en silencio). La causa más habitual es haber editado el secreto en el script (paso 7) sin volver a **Implementar → Gestionar implementaciones → editar → Nueva versión → Implementar** — hasta que no repites ese último paso, la versión publicada del script sigue teniendo el secreto antiguo y rechaza todo con "unauthorized".
+
 ## Desarrollo / cómo contribuir
 
 - **`index.html`**: interfaz, estilos y la lógica que depende de la app (pestañas, render, Google Sheets, escritura). No tiene build ni dependencias que instalar.

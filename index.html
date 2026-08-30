@@ -914,20 +914,39 @@ async function copyWriteSecret(){
 async function writeBackCell(gid,row,col,value){
   const url=localStorage.getItem("fin:writeurl");
   const secret=localStorage.getItem("fin:writesecret");
-  if(!url||!col)return;
+  if(!url||!col)return null;
+  const body=JSON.stringify({action:"setCell",gid,row,col,value,secret});
   try{
-    await fetch(url,{
-      method:"POST",
-      mode:"no-cors",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({action:"setCell",gid,row,col,value,secret})
-    });
-  }catch(e){}
+    // Petición normal primero: si el Apps Script responde con CORS habilitado (suele pasar),
+    // esto nos deja leer si realmente escribió o dio error, en vez de disparar a ciegas.
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    let data=null;
+    try{data=await res.json();}catch(e){}
+    if(data&&data.ok===true)return {ok:true};
+    return {ok:false,reason:(data&&data.error)||("respuesta HTTP "+res.status)};
+  }catch(e){
+    // Fallo de red/CORS al leer la respuesta: reintenta a ciegas (no-cors) para que el
+    // Apps Script reciba el cambio igualmente, aunque no podamos confirmar el resultado.
+    try{
+      await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body});
+    }catch(e2){}
+    return {ok:false,reason:"no se pudo confirmar (posible bloqueo CORS del navegador)"};
+  }
 }
-function writeBackCategoryChange(r,c){
-  if(!r.src||!c)return;
-  if(r.src.catCol)writeBackCell(r.src.gid,r.src.row,r.src.catCol,c.label);
-  if(r.src.fjCol&&c.tipo)writeBackCell(r.src.gid,r.src.row,r.src.fjCol,c.tipo==="fijo"?"Fijo":"Variable");
+async function writeBackCategoryChange(r,c){
+  if(!r.src||!c)return null;
+  const results=[];
+  if(r.src.catCol)results.push(await writeBackCell(r.src.gid,r.src.row,r.src.catCol,c.label));
+  if(r.src.fjCol&&c.tipo)results.push(await writeBackCell(r.src.gid,r.src.row,r.src.fjCol,c.tipo==="fijo"?"Fijo":"Variable"));
+  const attempted=results.filter(x=>x!==null);
+  if(!attempted.length)return null;
+  const failed=attempted.find(x=>!x.ok);
+  return failed?{ok:false,reason:failed.reason}:{ok:true};
+}
+function reportWriteResult(result){
+  if(!result)return;
+  if(result.ok)banner("Guardado también en tu Google Sheet.","info",2500);
+  else banner("No se pudo confirmar el guardado en Google Sheets"+(result.reason?": "+result.reason:"")+". Revisa ⚙ → Escritura en Sheets.","err",11000);
 }
 
 /* ---------- ejemplo ---------- */
@@ -1052,7 +1071,7 @@ function setCat(id,cat){
   const r=rows.find(x=>x.id===id);
   if(!r)return;
   r.categoria=cat;r.manual=true;save();render();
-  writeBackCategoryChange(r,CATS[cat]);
+  writeBackCategoryChange(r,CATS[cat]).then(reportWriteResult);
 }
 function setConcepto(id,value){
   const r=rows.find(x=>x.id===id);
@@ -1060,7 +1079,7 @@ function setConcepto(id,value){
   const v=value.replace(/\s+/g," ").trim();
   if(!v||v===r.concepto){render();return;}
   r.concepto=v;save();render();
-  if(r.src&&r.src.cCol)writeBackCell(r.src.gid,r.src.row,r.src.cCol,v);
+  if(r.src&&r.src.cCol)writeBackCell(r.src.gid,r.src.row,r.src.cCol,v).then(reportWriteResult);
 }
 function wipe(){
   if(rows.length&&!confirm("¿Borrar todos los movimientos de esta pestaña? No se puede deshacer."))return;
@@ -1202,14 +1221,22 @@ function applyBulkCategory(){
   if(!cat)return;
   let n=0;
   const c=CATS[cat];
+  const writeBacks=[];
   rows.forEach(r=>{
     if(!selected.has(r.id))return;
     r.categoria=cat;r.manual=true;n++;
-    writeBackCategoryChange(r,c);
+    writeBacks.push(writeBackCategoryChange(r,c));
   });
   selected.clear();
   save();render();
   banner("Categoría actualizada en "+n+" movimientos.");
+  Promise.all(writeBacks).then(results=>{
+    const attempted=results.filter(x=>x!==null);
+    if(!attempted.length)return;
+    const failCount=attempted.filter(x=>!x.ok).length;
+    if(failCount>0)banner("No se pudo confirmar el guardado en Google Sheets de "+failCount+" de "+attempted.length+" movimientos. Revisa ⚙ → Escritura en Sheets.","err",11000);
+    else banner("Guardados también en tu Google Sheet.","info",2500);
+  });
 }
 function moveBulkToBoard(){
   const targetId=document.getElementById("bulkMove").value;
