@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-30
 
+- Añadir skill de Claude Code `aidev-best-practices` (prompts efectivos, señales de alerta con el agente, checklist de sesión) y cambiar la convención de specs de un único `plan.md` a archivos numerados `docs/sdd/spec-N-nombre.md` que no se sobrescriben entre sí.
 - Documentación: crear `docs/TECHNICAL.md` con la arquitectura y decisiones técnicas (movido fuera del README, que se queda centrado en qué hace la app y cómo usarla); guardar los planes SDD aprobados en `docs/sdd/` para que sean visibles en el repo, no solo locales a quien planificó.
 - Añadir skill de Claude Code (`.claude/skills/sdd/`) con la metodología de trabajo Spec-Driven Development del equipo.
 - UX: agrupar las acciones de la cabecera en menús desplegables ("Importar", "⚙") con accesibilidad ARIA y cierre por teclado/clic fuera.
