@@ -349,6 +349,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
     <div class="mhead"><h3 class="display">Escritura en Google Sheets</h3><button class="x" onclick="closeWriteModal()">&times;</button></div>
     <div id="writeStep1">
       <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;line-height:1.5">Pega la URL de tu Apps Script Web App (ver README) para que los cambios de categoría/concepto se guarden también en tu Google Sheet. Déjalo vacío y guarda para desactivarlo.</p>
+      <p style="color:var(--expense);font-size:12px;margin:-6px 0 14px;line-height:1.5">⚠️ ¿Ya tienes esto configurado en otro dispositivo (por ejemplo el ordenador)? <strong>No pegues aquí la misma URL a mano</strong> — cada dispositivo se inventaría su propio código secreto y no coincidiría con el que espera tu Apps Script, así que los guardados fallarían en silencio. Ve a este mismo menú en el dispositivo ya configurado y usa el "Enlace para configurar otro dispositivo" de más abajo.</p>
       <div class="field"><label>URL del Apps Script</label><input id="fWriteUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec"></div>
       <p id="writeErr" style="color:var(--expense);font-size:12px;margin-top:-6px;margin-bottom:10px"></p>
       <div class="mfoot">
@@ -1080,8 +1081,12 @@ async function writeBackCategoryChange(r,c){
 }
 function reportWriteResult(result){
   if(!result)return;
-  if(result.ok)banner("Guardado también en tu Google Sheet.","info",2500);
-  else banner("No se pudo confirmar el guardado en Google Sheets"+(result.reason?": "+result.reason:"")+". Revisa ⚙ → Escritura en Sheets.","err",11000);
+  if(result.ok){banner("Guardado también en tu Google Sheet.","info",2500);return;}
+  if(result.reason==="unauthorized"){
+    banner('Tu código secreto de este dispositivo no coincide con el de tu Apps Script — probablemente escribiste la URL a mano en vez de usar el "Enlace para configurar otro dispositivo". Ve a ⚙ → Escritura en Sheets en el dispositivo donde sí funciona y copia ese enlace.',"err",15000);
+    return;
+  }
+  banner("No se pudo confirmar el guardado en Google Sheets"+(result.reason?": "+result.reason:"")+". Revisa ⚙ → Escritura en Sheets.","err",11000);
 }
 function findSheetLink(){
   const template=rows.find(r=>r.src);

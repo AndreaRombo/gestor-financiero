@@ -4,6 +4,7 @@ Historial de cambios del proyecto, generado a partir de los mensajes de commit. 
 
 ## 2026-08-31
 
+- Fix: la escritura a Google Sheets fallaba en silencio desde un segundo dispositivo (móvil) cuando la URL del Apps Script se pegaba a mano en vez de usar el enlace de sincronización — cada dispositivo se inventaba su propio código secreto, que no coincidía con el que espera el Apps Script. Ahora se avisa con un mensaje claro cuando el fallo es justo ese ("unauthorized"), y el diálogo de configuración avisa de antemano si ya tienes esto configurado en otro dispositivo.
 - Fix: la sincronización con Google Sheets solo traía una pestaña genérica "Google Sheets" en vez de todos los meses en algunos dispositivos (móvil). Causa: Google sirve una página distinta (`/htmlview`) según el `User-Agent` del móvil, y el descubrimiento de pestañas solo reconocía el formato de la página de escritorio (`/edit`). Ahora reconoce ambos formatos.
 - UX: sustituir la fila de pestañas con scroll horizontal por un desplegable (mismo patrón que "Importar"/"⚙") — no depende de cuánto texto quepa en una fila, y en móvil ya no hay que arrastrar hacia los lados para ver las pestañas que no caben. Cada pestaña del desplegable tiene icono de renombrar (✎) además del doble clic de siempre.
 - UX: en móvil, la cabecera ya no apila cada botón a ancho completo (tema, importar, añadir movimiento, ajustes ocupaban gran parte de la pantalla antes de ver ningún dato). Ahora quedan compactos en una fila, y "Añadir movimiento" pasa a ser un botón flotante en la esquina inferior derecha.
