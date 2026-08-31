@@ -2,6 +2,11 @@
 
 Historial de cambios del proyecto, generado a partir de los mensajes de commit. Fechas en formato AAAA-MM-DD.
 
+## 2026-08-31
+
+- UX: sustituir la fila de pestañas con scroll horizontal por un desplegable (mismo patrón que "Importar"/"⚙") — no depende de cuánto texto quepa en una fila, y en móvil ya no hay que arrastrar hacia los lados para ver las pestañas que no caben. Cada pestaña del desplegable tiene icono de renombrar (✎) además del doble clic de siempre.
+- UX: en móvil, la cabecera ya no apila cada botón a ancho completo (tema, importar, añadir movimiento, ajustes ocupaban gran parte de la pantalla antes de ver ningún dato). Ahora quedan compactos en una fila, y "Añadir movimiento" pasa a ser un botón flotante en la esquina inferior derecha.
+
 ## 2026-08-30
 
 - Fix: el enlace para compartir la configuración de Sheets podía generarse sin la lista de pestañas dentro (dejando al otro dispositivo con una sola pestaña genérica "Google Sheets"), si en ese navegador no se había disparado antes una sincronización con el código nuevo. Ahora el enlace calcula la lista de pestañas directamente del estado actual de la app en el momento de generarlo, sin depender de una sincronización previa. Quien generó un enlace antes de este cambio debe generarlo de nuevo.

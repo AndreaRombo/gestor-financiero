@@ -59,6 +59,7 @@ button{font-family:inherit;cursor:pointer;border:none;transition:background .13s
 .btn.primary:hover{background:#BCA6FC;border-color:#BCA6FC}
 .btn.ghost{background:transparent}
 .btn.ghost:hover{background:var(--panel)}
+.fabicon,.btnicon{display:none}
 
 .dropdown{position:relative}
 .dropdown-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-width:calc(100vw - 40px);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:none;flex-direction:column;gap:1px;z-index:50}
@@ -82,17 +83,17 @@ button{font-family:inherit;cursor:pointer;border:none;transition:background .13s
 .drop p{color:var(--muted);font-size:12.5px;margin-bottom:20px}
 .dbtns{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
 
-.tabs{display:flex;align-items:flex-end;gap:5px;overflow-x:auto;margin-bottom:14px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
-.tabs::-webkit-scrollbar{height:5px}
-.tabs::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-.tab{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px 10px 0 0;background:var(--panel);border:1px solid var(--lineSoft);border-bottom:none;color:var(--muted);font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap;user-select:none}
-.tab:hover{color:var(--text)}
-.tab.on{background:var(--raised);color:var(--text);border-color:var(--line)}
-.tab .tabx{opacity:0;padding:0 4px;border-radius:5px;font-size:13px;line-height:1.4;color:var(--faint)}
-.tab:hover .tabx{opacity:1}
-.tab .tabx:hover{color:var(--expense);background:rgba(251,113,133,.14)}
-.tabadd{flex:0 0 auto;align-self:center;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:16px}
-.tabadd:hover{color:var(--text);border-color:var(--lineHover)}
+.boardbar{margin-bottom:14px}
+.boardbtn{display:flex;align-items:center;gap:8px;min-width:180px;max-width:100%}
+.boardbtn .boardbtnlabel{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.boarditem{display:flex;align-items:center;gap:2px;border-radius:7px}
+.boarditem.on{background:var(--raised)}
+.boardname{flex:1;text-align:left;padding:9px 8px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none}
+.boarditem.on .boardname{color:var(--text)}
+.boardname:hover{background:var(--raised);color:var(--text)}
+.boardedit,.boardx{flex:0 0 auto;padding:6px 8px;border-radius:6px;font-size:12px;color:var(--faint)}
+.boardedit:hover{color:var(--text);background:var(--raised)}
+.boardx:hover{color:var(--expense);background:rgba(251,113,133,.14)}
 
 .fvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 .fvcard{background:var(--raised);border:1px solid var(--lineSoft);border-radius:14px;padding:15px}
@@ -190,7 +191,7 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
 .empty{text-align:center;padding:44px 20px;color:var(--faint);font-size:13px}
 
 @media (max-width:720px){
-  .wrap{padding:20px 14px 60px}
+  .wrap{padding:20px 14px 84px}
   h1{font-size:21px}
   .metrics{grid-template-columns:1fr;gap:9px}
   .metric{padding:14px}
@@ -199,12 +200,18 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   .fvcard{padding:12px}
   .tblwrap{display:none}
   .cards{display:flex}
-  header{gap:14px}
-  .hwrap{width:100%}
-  .hactions{width:100%}
-  .hactions>.btn,.hactions>.dropdown{flex:1 1 100%}
-  .hactions .dropdown>.btn{width:100%}
-  .hactions .savedot{flex:0 0 100%;justify-content:center;margin:0 0 2px}
+  header{gap:10px}
+  .hwrap{width:100%;justify-content:flex-end}
+  .hactions{gap:6px}
+  .hactions .savedot{order:-1;margin-right:auto}
+  .hactions .savedot #savetxt{display:none}
+  #importDropdown .btnlabel{display:none}
+  #importDropdown .btnicon{display:inline}
+  #importDropdown>.btn{padding:8px 10px}
+  #addMovBtn{position:fixed;right:18px;bottom:22px;z-index:40;width:54px;height:54px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+  #addMovBtn .btnlabel{display:none}
+  #addMovBtn .fabicon{display:block;font-size:24px;line-height:1}
+  .boardbtn{min-width:0}
 }
 @media (prefers-reduced-motion:reduce){
   .bfill,.ribbon span{transition:none}
@@ -223,13 +230,13 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
       <div class="hactions" id="hactions" hidden>
         <span class="savedot" id="savedot"><i></i><span id="savetxt"></span></span>
         <div class="dropdown" id="importDropdown">
-          <button class="btn" onclick="toggleDropdown('importDropdown')" aria-haspopup="true" aria-expanded="false">Importar ▾</button>
+          <button class="btn" onclick="toggleDropdown('importDropdown')" aria-haspopup="true" aria-expanded="false" title="Importar"><span class="btnicon">📥</span><span class="btnlabel">Importar</span> ▾</button>
           <div class="dropdown-menu" role="menu">
             <button role="menuitem" id="addBtn" onclick="closeDropdowns();pickFile()">📄 Desde archivo (Excel/CSV)</button>
             <button role="menuitem" id="driveBtn" onclick="closeDropdowns();importFromDrive()">📊 Desde Google Sheets</button>
           </div>
         </div>
-        <button class="btn primary" onclick="openForm()">Añadir movimiento</button>
+        <button class="btn primary" id="addMovBtn" onclick="openForm()" title="Añadir movimiento"><span class="btnlabel">Añadir movimiento</span><span class="fabicon">+</span></button>
         <div class="dropdown right" id="settingsDropdown">
           <button class="btn ghost sm" onclick="toggleDropdown('settingsDropdown')" aria-haspopup="true" aria-expanded="false" title="Más opciones">⚙ ▾</button>
           <div class="dropdown-menu" role="menu">
@@ -258,7 +265,12 @@ select.cat{background:var(--base);border:1px solid var(--line);color:var(--text)
   </section>
 
   <section id="app" hidden>
-    <div class="tabs" id="tabs"></div>
+    <div class="dropdown boardbar" id="boardDropdown">
+      <button class="btn boardbtn" onclick="toggleDropdown('boardDropdown')" aria-haspopup="true" aria-expanded="false">
+        <span>📁</span><span class="boardbtnlabel" id="boardBtnLabel"></span><span>▾</span>
+      </button>
+      <div class="dropdown-menu" id="boardMenu" role="menu"></div>
+    </div>
 
     <div class="metrics" id="metrics"></div>
 
@@ -474,14 +486,18 @@ function deleteBoard(id){
   save();show();
 }
 function renderTabs(){
-  const el=document.getElementById("tabs");
-  if(!el)return;
-  el.innerHTML=boards.map(b=>
-    '<div class="tab '+(b.id===currentBoardId?"on":"")+'" onclick="switchBoard(\''+b.id+'\')" ondblclick="renameBoard(\''+b.id+'\')" title="Doble clic para renombrar">'+
-    '<span>'+esc(b.name)+'</span>'+
-    (boards.length>1?'<span class="tabx" onclick="event.stopPropagation();deleteBoard(\''+b.id+'\')" title="Eliminar pestaña">&times;</span>':'')+
+  const label=document.getElementById("boardBtnLabel");
+  const menu=document.getElementById("boardMenu");
+  if(!label||!menu)return;
+  const current=boards.find(b=>b.id===currentBoardId);
+  label.textContent=current?current.name:"";
+  menu.innerHTML=boards.map(b=>
+    '<div class="boarditem '+(b.id===currentBoardId?"on":"")+'" role="menuitem">'+
+    '<span class="boardname" onclick="closeDropdowns();switchBoard(\''+b.id+'\')" ondblclick="renameBoard(\''+b.id+'\')" title="Doble clic para renombrar">'+esc(b.name)+'</span>'+
+    '<span class="boardedit" onclick="event.stopPropagation();closeDropdowns();renameBoard(\''+b.id+'\')" title="Renombrar pestaña">✎</span>'+
+    (boards.length>1?'<span class="boardx" onclick="event.stopPropagation();deleteBoard(\''+b.id+'\')" title="Eliminar pestaña">&times;</span>':'')+
     '</div>'
-  ).join("")+'<button class="tabadd" onclick="addBoard()" title="Nueva pestaña">+</button>';
+  ).join("")+'<hr><button role="menuitem" onclick="closeDropdowns();addBoard()">+ Nueva pestaña</button>';
 }
 
 /* ---------- persistencia ---------- */
