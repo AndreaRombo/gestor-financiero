@@ -853,6 +853,11 @@ async function driveDiscoverTabs(id){
     const re=/\[\d+,0,\\"(\d+)\\",\[\{\\"1\\":\[\[0,0,\\"([^\\]+)\\"\]/g;
     const out=[];let m;
     while((m=re.exec(html)))out.push({gid:m[1],title:m[2]});
+    if(out.length)return out;
+    /* En móvil, Google redirige /edit a /htmlview (vista simplificada sin el bloque anterior);
+       ahí las pestañas vienen en este otro formato de texto. */
+    const re2=/items\.push\(\{name:\s*"([^"]+)",\s*pageUrl:[^}]*?gid:\s*"(\d+)"/g;
+    while((m=re2.exec(html)))out.push({gid:m[2],title:m[1]});
     return out;
   }catch(e){return [];}
 }
